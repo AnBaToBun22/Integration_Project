@@ -63,4 +63,8 @@ def create_app(config_class=Config):
     # from .routes.auth import auth_bp
     # app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
+    # THÊM CODE ĐĂNG KÝ API Ở ĐÂY:
+    from .routes.report_routes import report_bp
+    app.register_blueprint(report_bp)
+
     return app
