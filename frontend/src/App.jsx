@@ -1,34 +1,48 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-// SỬA DÒNG NÀY: Trỏ đúng vào file DashboardLayout mà mình và bạn vừa sửa xong
+// Import Layout chuẩn
 import Layout from './layouts/DashboardLayout'; 
 
+// Import các trang con
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Reports from './pages/Reports';
+import HRData from './pages/HRData';
 
 function App() {
+  // Giả lập trạng thái đăng nhập
   const isAuthenticated = true;
 
   return (
     <Router>
       <Routes>
+        {/* Trang đăng nhập nằm ngoài Layout chung */}
         <Route path="/login" element={<Login />} />
         
+        {/* Các trang yêu cầu đăng nhập sẽ nằm bên trong Layout */}
         <Route 
           path="/" 
           element={isAuthenticated ? <Layout /> : <Navigate to="/login" />}
         >
+          {/* Trang chủ mặc định */}
           <Route index element={<Dashboard />} />
-          <Route path="hr" element={<div className="p-4 text-2xl font-bold">HR Data Module (Pending)</div>} />
-          <Route path="payroll" element={<div className="p-4 text-2xl font-bold">Payroll Module (Pending)</div>} />
           
-          {/* Route này đã chuẩn với Link to="/reports" trong Sidebar */}
+          {/* TRANG NHÂN SỰ: Đã xóa dòng Pending, chỉ giữ lại HRData */}
+          <Route path="hr" element={<HRData />} />
+          
+          {/* TRANG LƯƠNG: Tạm thời để Pending */}
+          <Route path="payroll" element={<div className="p-4 text-2xl font-bold text-gray-700">Payroll Module (Pending)</div>} />
+          
+          {/* TRANG BÁO CÁO: UC.11, 12, 13 của Hiếu */}
           <Route path="reports" element={<Reports />} /> 
           
-          <Route path="settings" element={<div className="p-4 text-2xl font-bold">Settings Module (Pending)</div>} />
+          {/* TRANG CÀI ĐẶT */}
+          <Route path="settings" element={<div className="p-4 text-2xl font-bold text-gray-700">Settings Module (Pending)</div>} />
         </Route>
+
+        {/* Chuyển hướng nếu vào link lạ */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );

@@ -1,37 +1,43 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify  # Đã sửa: bỏ import app ở đây
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import pyodbc
 import pymysql
 from .config import Config
 
-# Initialize the extensions
-db = SQLAlchemy()  # Only for the Auth/RBAC SQLite DB
+# Khởi tạo extension SQLAlchemy cho database Auth (SQLite)
+db = SQLAlchemy()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Enable CORS for the React frontend
-    CORS(app)
+    # Bật CORS để React (Port 5173) có thể gọi API Python (Port 5000)
+    # Đây là chìa khóa để giải quyết lỗi "Dữ liệu bị chặn"
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-    # 1. Initialize Auth DB (SQLite)
+    # 1. Khởi tạo Auth DB (SQLite)
     db.init_app(app)
 
-    # Ensure tables are created for the Auth DB
     with app.app_context():
-        # import your models here before db.create_all()
-        # from .models import User
+        # Tự động tạo bảng cho database Auth nếu chưa có
         db.create_all()
 
-    # Define DB connections for the legacy systems
+    # 2. Định nghĩa kết nối SQL Server (HR DB - HUMAN_2025)
     def get_hr_db_connection():
-        """Returns a connection to the SQL Server HR DB."""
-        return pyodbc.connect(app.config['HR_DB_CONNECTION_STRING'])
+        """Kết nối SQL Server. Chú ý: Nếu không dùng pass thì dùng Trusted_Connection."""
+        # Lấy connection string từ config
+        conn_str = app.config['HR_DB_CONNECTION_STRING']
+        
+        # Nếu trong file .env bạn để trống mật khẩu, ta đảm bảo dùng cơ chế Windows Auth
+        if "PWD=;" in conn_str or "PWD= " in conn_str:
+             conn_str = conn_str.replace("UID=sa;", "").replace("PWD=;", "") + "Trusted_Connection=yes;"
+        
+        return pyodbc.connect(conn_str)
 
+    # 3. Định nghĩa kết nối MySQL (Payroll DB)
     def get_payroll_db_connection():
-        """Returns a connection to the MySQL Payroll DB."""
         return pymysql.connect(
             host=app.config['PAYROLL_DB_HOST'],
             user=app.config['PAYROLL_DB_USER'],
@@ -40,31 +46,27 @@ def create_app(config_class=Config):
             cursorclass=pymysql.cursors.DictCursor
         )
 
-    # Attach connection functions to app for easy access in routes
+    # Gắn hàm kết nối vào app để các routes (của Hiếu và Vinh) dễ dàng gọi tới
     app.get_hr_db = get_hr_db_connection
     app.get_payroll_db = get_payroll_db_connection
 
-    # Basic health check route
+    # API kiểm tra trạng thái hệ thống
     @app.route('/api/health')
     def health_check():
-        hr_status = "error"
-        payroll_status = "error"
-        
-        # We can attempt connection tests here later if needed
         return jsonify({
             "status": "online",
             "message": "Dashboard API is running",
-            "auth_db": "connected via SQLAlchemy",
-            "hr_db_configured": bool(app.config.get('HR_DB_SERVER')),
-            "payroll_db_configured": bool(app.config.get('PAYROLL_DB_HOST'))
+            "hr_db": "SQL Server configured",
+            "payroll_db": "MySQL configured"
         })
 
-    # Register blueprints (to be created later)
-    # from .routes.auth import auth_bp
-    # app.register_blueprint(auth_bp, url_prefix='/api/auth')
-
-    # THÊM CODE ĐĂNG KÝ API Ở ĐÂY:
+    # ĐĂNG KÝ CÁC BLUEPRINT (Các file Route)
+    # Phần báo cáo của Phan Quang Hiếu (UC.11, 12, 13)
     from .routes.report_routes import report_bp
     app.register_blueprint(report_bp)
+
+    # Phần quản lý nhân viên hỗ trợ Vinh (UC.5, 6, 7)
+    from .routes.employee_routes import employee_bp
+    app.register_blueprint(employee_bp)
 
     return app
