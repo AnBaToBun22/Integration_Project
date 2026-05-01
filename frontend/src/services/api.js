@@ -15,5 +15,7 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
-
+export const createEmployee = (employeeData) => {
+  return api.post('/employees', employeeData);
+};
 export default api;

@@ -36,32 +36,48 @@ def get_employees(current_user_role):
         conn.close()
 
 # UC.6: Thêm nhân viên mới
+# UC.6: Thêm nhân viên mới
 @employee_bp.route('/api/employees', methods=['POST'])
 @token_required
-@require_roles(['Admin', 'HR Manager'])
+@require_roles(['Admin', 'HR Manager']) # Chỉ Admin và HR Manager mới thấy nút này
 def add_employee(current_user_role):
-    data = request.json
+    data = request.json # Nhận dữ liệu từ Form của React gửi lên
     try:
         conn = current_app.get_hr_db()
         cursor = conn.cursor()
-        # Thêm các cột mặc định như Status và CreatedAt
+        
+        # Câu lệnh SQL INSERT vào bảng Employees (SQL Server)
+        # Sử dụng GETDATE() cho ngày tạo và mặc định trạng thái là 'Đang làm việc'
         sql = """
-            INSERT INTO Employees (FullName, DateOfBirth, Gender, PhoneNumber, Email, HireDate, DepartmentID, PositionID, Status, CreatedAt) 
+            INSERT INTO Employees (
+                FullName, DateOfBirth, Gender, PhoneNumber, 
+                Email, HireDate, DepartmentID, PositionID, 
+                Status, CreatedAt
+            ) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE())
         """
-        cursor.execute(sql, (
-            data['FullName'], data.get('DateOfBirth'), data.get('Gender'),
-            data.get('PhoneNumber'), data['Email'], data.get('HireDate'), 
-            data.get('DepartmentID'), data.get('PositionID'),
-            data.get('Status', u'Đang làm việc')
-        ))
-        conn.commit()
+        
+        params = (
+            data.get('FullName'), 
+            data.get('DateOfBirth'), 
+            data.get('Gender'),
+            data.get('PhoneNumber'), 
+            data.get('Email'), 
+            data.get('HireDate'), 
+            data.get('DepartmentID'), 
+            data.get('PositionID'),
+            data.get('Status', N'Đang làm việc') # Mặc định trạng thái tiếng Việt có dấu
+        )
+        
+        cursor.execute(sql, params)
+        conn.commit() # Quan trọng: Phải commit để lưu vào SQL Server
+        
         return jsonify({"message": "Thêm nhân viên thành công!"}), 201
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
-
 # UC.7: Cập nhật thông tin nhân viên
 @employee_bp.route('/api/employees/<int:emp_id>', methods=['PUT'])
 @token_required
@@ -107,3 +123,4 @@ def delete_employee(current_user_role, emp_id):
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
+
