@@ -16,8 +16,7 @@ def token_required(f):
     def decorated(*args, **kwargs):
         token = None
         # Kiểm tra token trong Header của Request
-        if 'Authorization' in request.headers:
-            auth_header = request.headers.get('Authorization', '')
+        auth_header = request.headers.get('Authorization', '')
         if auth_header.startswith('Bearer '):
             token = auth_header.split(' ')[1]
 

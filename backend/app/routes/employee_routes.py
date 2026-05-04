@@ -5,36 +5,27 @@ employee_bp = Blueprint('employee_bp', __name__)
 
 # UC.5: Xem danh sách nhân viên
 @employee_bp.route('/api/employees', methods=['GET'])
-@token_required
-def get_employees(current_user_role):
+#@token_required
+def get_employees(): 
     try:
-        conn = current_app.get_hr_db()
+        # 1. SỬA LẠI THÀNH get_hr_db() ĐỂ KẾT NỐI SQL SERVER
+        conn = current_app.get_hr_db() 
         cursor = conn.cursor()
-        # Đã cập nhật đủ tất cả các cột theo ảnh sp_help bạn chụp
-        query = """
-            SELECT EmployeeID, FullName, DateOfBirth, Gender, PhoneNumber, 
-                   Email, HireDate, DepartmentID, PositionID, Status, CreatedAt, UpdatedAt
-            FROM Employees
-        """
+        
+        # 2. LẤY TỪ BẢNG 'Employees' CHUẨN CỦA ÔNG (Có đầy đủ Email)
+        query = "SELECT EmployeeID, FullName, Email, DepartmentID, Status FROM Employees"
         cursor.execute(query)
         
         columns = [column[0] for column in cursor.description]
-        results = []
-        for row in cursor.fetchall():
-            row_dict = dict(zip(columns, row))
-            # Xử lý ngày tháng cho JSON
-            if row_dict['DateOfBirth']: row_dict['DateOfBirth'] = row_dict['DateOfBirth'].strftime('%Y-%m-%d')
-            if row_dict['HireDate']: row_dict['HireDate'] = row_dict['HireDate'].strftime('%Y-%m-%d')
-            if row_dict['CreatedAt']: row_dict['CreatedAt'] = row_dict['CreatedAt'].strftime('%Y-%m-%d %H:%M:%S')
-            if row_dict['UpdatedAt']: row_dict['UpdatedAt'] = row_dict['UpdatedAt'].strftime('%Y-%m-%d %H:%M:%S')
-            results.append(row_dict)
+        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
             
         return jsonify(results), 200
     except Exception as e:
+        print("LỖI TẠI HR:", e)
         return jsonify({"error": str(e)}), 500
     finally:
-        if 'conn' in locals():
-         conn.close()
+        if 'conn' in locals(): 
+            conn.close()
 
 # UC.6: Thêm nhân viên mới
 # UC.6: Thêm nhân viên mới

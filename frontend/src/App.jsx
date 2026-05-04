@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Reports from './pages/Reports';
 import HRData from './pages/HRData';
+import Payroll from './pages/Payroll'; // 1. ĐÃ IMPORT
 
 function App() {
   // Giả lập trạng thái đăng nhập
@@ -28,13 +29,13 @@ function App() {
           {/* Trang chủ mặc định */}
           <Route index element={<Dashboard />} />
           
-          {/* TRANG NHÂN SỰ: Đã xóa dòng Pending, chỉ giữ lại HRData */}
+          {/* TRANG NHÂN SỰ */}
           <Route path="hr" element={<HRData />} />
           
-          {/* TRANG LƯƠNG: Tạm thời để Pending */}
-          <Route path="payroll" element={<div className="p-4 text-2xl font-bold text-gray-700">Payroll Module (Pending)</div>} />
+          {/* TRANG LƯƠNG: 2. ĐÃ GẮN ĐÚNG COMPONENT */}
+          <Route path="payroll" element={<Payroll />} />
           
-          {/* TRANG BÁO CÁO: UC.11, 12, 13 của Hiếu */}
+          {/* TRANG BÁO CÁO */}
           <Route path="reports" element={<Reports />} /> 
           
           {/* TRANG CÀI ĐẶT */}

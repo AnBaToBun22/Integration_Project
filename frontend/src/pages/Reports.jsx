@@ -1,69 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Reports() {
-    // 1. Tạo State để lưu trữ bộ lọc và dữ liệu
     const [data, setData] = useState([]);
     const [month, setMonth] = useState('12');
     const [year, setYear] = useState('2025');
     const [errorMsg, setErrorMsg] = useState('');
 
-    // 2. Tự động gọi API mỗi khi month hoặc year thay đổi
     useEffect(() => {
         const fetchReportData = async () => {
             try {
-                // Xóa lỗi cũ nếu có
                 setErrorMsg(''); 
                 
-                // Lấy token từ localStorage (sau khi Login)
-                const token = localStorage.getItem('token'); 
-
-                // 3. Dùng axios Bắn request kèm tham số month, year và Token
-                const response = await axios.get(`http://localhost:5000/api/reports/payroll?month=${month}&year=${year}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}` // Gắn token vào Header
-                    }
-                });
+                // GỌI API: Đổi endpoint cho đúng với file report_routes.py (attendance)
+                // Lưu ý: Bỏ phần Authorization vì chưa có Login
+                const response = await axios.get(`http://localhost:5000/api/reports/attendance?month=${month}&year=${year}`);
                 
-                // Đổ dữ liệu vào biểu đồ
                 setData(response.data); 
                 
             } catch (error) {
-                // Xử lý lỗi 403 Forbidden từ Backend trả về
-                if (error.response && error.response.status === 403) {
-                    setErrorMsg("⛔ Bạn không có quyền xem báo cáo tài chính này!");
-                    setData([]); // Xóa trắng dữ liệu
-                } else {
-                    console.error("Lỗi khi lấy dữ liệu:", error);
-                }
+                console.error("Lỗi khi lấy dữ liệu:", error);
+                setErrorMsg("❌ Không thể lấy dữ liệu báo cáo. Vui lòng kiểm tra Backend!");
             }
         };
 
         fetchReportData();
-    }, [month, year]); // Mảng [month, year] nghĩa là: hễ tháng/năm đổi -> chạy lại API
+    }, [month, year]);
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto mt-8">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Báo Cáo Chi Phí Lương</h2>
+        <div className="bg-white p-6 rounded-xl shadow-lg max-w-5xl mx-auto mt-8">
+            <div className="flex justify-between items-center mb-8 border-b pb-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-blue-900">Báo Cáo Chuyên Cần & Chấm Công</h2>
+                    <p className="text-gray-500 text-sm italic">* Dữ liệu tích hợp từ hệ thống Payroll (MySQL)</p>
+                </div>
                 
-                {/* 4. Bộ Dropdown (Select Box) */}
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                     <select 
                         value={month} 
                         onChange={(e) => setMonth(e.target.value)}
-                        className="border p-2 rounded focus:ring-blue-500"
+                        className="border-2 border-blue-100 p-2 rounded-lg focus:border-blue-500 outline-none transition"
                     >
-                        <option value="10">Tháng 10</option>
-                        <option value="11">Tháng 11</option>
-                        <option value="12">Tháng 12</option>
+                        {[...Array(12)].map((_, i) => (
+                            <option key={i+1} value={i+1}>Tháng {i+1}</option>
+                        ))}
                     </select>
 
                     <select 
                         value={year} 
                         onChange={(e) => setYear(e.target.value)}
-                        className="border p-2 rounded focus:ring-blue-500"
+                        className="border-2 border-blue-100 p-2 rounded-lg focus:border-blue-500 outline-none transition"
                     >
                         <option value="2024">2024</option>
                         <option value="2025">2025</option>
@@ -71,19 +58,34 @@ export default function Reports() {
                 </div>
             </div>
 
-            {/* Hiển thị dòng thông báo lỗi màu đỏ nếu bị 403 */}
-            {errorMsg && <div className="text-red-500 font-semibold mb-4 bg-red-100 p-3 rounded">{errorMsg}</div>}
+            {errorMsg && <div className="text-red-500 font-semibold mb-4 bg-red-50 p-3 rounded-lg border border-red-200">{errorMsg}</div>}
 
-            {/* 5. Biểu đồ */}
-            {!errorMsg && (
-                <BarChart width={800} height={400} data={data}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)} />
-                    <Legend />
-                    <Bar dataKey="TotalPayrollCost" fill="#4F46E5" name="Tổng quỹ lương" />
-                </BarChart>
+            {/* Hiển thị biểu đồ Recharts */}
+            {!errorMsg && data.length > 0 ? (
+                <div className="h-[450px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis 
+                                dataKey="FullName" 
+                                angle={-45} 
+                                textAnchor="end" 
+                                interval={0} 
+                                height={80}
+                                tick={{ fontSize: 12 }}
+                            />
+                            <YAxis />
+                            <Tooltip 
+                                contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            />
+                            <Legend verticalAlign="top" height={36}/>
+                            <Bar dataKey="TotalWorkDays" fill="#10B981" name="Ngày công" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="TotalAbsentDays" fill="#EF4444" name="Vắng mặt" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            ) : (
+                !errorMsg && <div className="text-center py-20 text-gray-400">Không có dữ liệu cho khoảng thời gian này.</div>
             )}
         </div>
     );
