@@ -37,6 +37,11 @@ const DashboardLayout = () => {
             <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>HR Data</span>
           </Link>
 
+          <Link to="/departments" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/departments')}`}>
+            <Users size={20} />
+            <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Phòng ban</span>
+          </Link>
+
           <Link to="/payroll" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/payroll')}`}>
             <DollarSign size={20} />
             <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Payroll</span>

@@ -83,4 +83,8 @@ def create_app(config_class=Config):
     from .routes.employee_routes import employee_bp
     app.register_blueprint(employee_bp)
 
+    # Phần quản lý phòng ban
+    from .routes.department_routes import department_bp
+    app.register_blueprint(department_bp)
+
     return app
