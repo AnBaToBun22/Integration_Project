@@ -27,14 +27,18 @@ def create_app(config_class=Config):
     # 2. Định nghĩa kết nối SQL Server (HR DB - HUMAN_2025)
     def get_hr_db_connection():
         """Kết nối SQL Server. Chú ý: Nếu không dùng pass thì dùng Trusted_Connection."""
+        
         # Lấy connection string từ config
-        conn_str = app.config['HR_DB_CONNECTION_STRING']
-        
-        # Nếu trong file .env bạn để trống mật khẩu, ta đảm bảo dùng cơ chế Windows Auth
-        if "PWD=;" in conn_str or "PWD= " in conn_str:
-             conn_str = conn_str.replace("UID=sa;", "").replace("PWD=;", "") + "Trusted_Connection=yes;"
-        
-        return pyodbc.connect(conn_str)
+        try:
+            conn_str = app.config['HR_DB_CONNECTION_STRING']
+            if "PWD=;" in connstr or "PWD= " in connstr:
+             connstr = connstr.replace("UID=sa;", "").replace("PWD=;", "") + "TrustedConnection=yes;"
+        # Thử mở kết nối
+            conn = pyodbc.connect(connstr)
+            return conn
+        except Exception as e:
+         print(f"[ERROR] Không thể kết nối SQL Server (HR DB): {e}")
+         raise
 
     # 3. Định nghĩa kết nối MySQL (Payroll DB)
     def get_payroll_db_connection():
@@ -53,12 +57,21 @@ def create_app(config_class=Config):
     # API kiểm tra trạng thái hệ thống
     @app.route('/api/health')
     def health_check():
-        return jsonify({
-            "status": "online",
-            "message": "Dashboard API is running",
-            "hr_db": "SQL Server configured",
-            "payroll_db": "MySQL configured"
-        })
+     return jsonify({
+        "status": "online",
+        "message": "Dashboard API is running",
+        "hr_db_connected": test_db(app.get_hr_db),
+        "payroll_db_connected": test_db(app.get_payroll_db)
+    })
+
+    def test_db(get_connection_func):
+     try:
+        conn = get_connection_func()
+        conn.close()
+        return True
+     except:
+        return False
+
 
     # ĐĂNG KÝ CÁC BLUEPRINT (Các file Route)
     # Phần báo cáo của Phan Quang Hiếu (UC.11, 12, 13)

@@ -33,7 +33,8 @@ def get_employees(current_user_role):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
-        conn.close()
+        if 'conn' in locals():
+         conn.close()
 
 # UC.6: Thêm nhân viên mới
 # UC.6: Thêm nhân viên mới
@@ -58,15 +59,15 @@ def add_employee(current_user_role):
         """
         
         params = (
-            data.get('FullName'), 
+            data.get('FullName', ''),
             data.get('DateOfBirth'), 
             data.get('Gender'),
             data.get('PhoneNumber'), 
-            data.get('Email'), 
+            data.get('Email', ''),
             data.get('HireDate'), 
             data.get('DepartmentID'), 
             data.get('PositionID'),
-            data.get('Status', N'Đang làm việc') # Mặc định trạng thái tiếng Việt có dấu
+            data.get('Status', 'Đang làm việc') # Mặc định trạng thái tiếng Việt có dấu
         )
         
         cursor.execute(sql, params)

@@ -17,7 +17,10 @@ def token_required(f):
         token = None
         # Kiểm tra token trong Header của Request
         if 'Authorization' in request.headers:
-            token = request.headers['Authorization'].split(" ")[1] # Cắt chữ "Bearer " lấy phần token
+            auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+
             
         if not token:
             return jsonify({'message': 'Thiếu Token! Vui lòng đăng nhập.'}), 401
@@ -26,8 +29,11 @@ def token_required(f):
             # Giải mã token để lấy thông tin user_id và role
             data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
             current_user_role = data['role'] # Lấy quyền của người dùng (Admin, HR Manager, Employee...)
-        except Exception as e:
-            return jsonify({'message': 'Token không hợp lệ hoặc đã hết hạn!'}), 401
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token đã hết hạn!'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'Token không hợp lệ!'}), 401
+        
             
         # Trả role về cho hàm xử lý bên trong
         return f(current_user_role, *args, **kwargs)

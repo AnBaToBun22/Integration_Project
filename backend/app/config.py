@@ -10,6 +10,7 @@ class Config:
     # 1. Internal Auth/RBAC Database (SQLite for local, could be Postgres)
     SQLALCHEMY_DATABASE_URI = os.environ.get('AUTH_DATABASE_URL') or 'sqlite:///auth_dashboard.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ECHO = False
     
     # 2. HR Database (SQL Server - HUMAN_2025)
     HR_DB_SERVER = os.environ.get('HR_DB_SERVER', 'localhost')
