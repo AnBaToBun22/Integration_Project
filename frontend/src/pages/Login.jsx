@@ -135,7 +135,7 @@ const Login = () => {
             {/* Tab chuyển đổi Login / Register */}
             <div className="flex mb-6 bg-gray-100 rounded-xl p-1 relative z-10">
               <button 
-                onClick={() => toggleMode()} 
+                onClick={() => setIsRegisterMode(false)} 
                 className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 transform active:scale-95 ${
                   !isRegisterMode 
                     ? 'bg-white text-blue-600 shadow-md scale-100' 
@@ -145,7 +145,7 @@ const Login = () => {
                 Đăng Nhập
               </button>
               <button 
-                onClick={() => toggleMode()} 
+                onClick={() => setIsRegisterMode(true)} 
                 className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 transform active:scale-95 ${
                   isRegisterMode 
                     ? 'bg-white text-blue-600 shadow-md scale-100' 
