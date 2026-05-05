@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 // Đã thêm icon Home và Settings để đủ bộ menu
 import { Home, Users, DollarSign, BarChart2, Settings, Bell, LogOut, Menu } from 'lucide-react';
 
 const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const location = useLocation(); // Dùng để highlight menu đang được chọn
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Role và tên của bạn đã được giữ nguyên
-  const userRole = "HR Manager"; 
+  // Lấy thông tin user thật từ localStorage (được lưu khi login)
+  const username = localStorage.getItem('username') || 'User';
+  const userRole = localStorage.getItem('role') || 'Employee';
+
+  // Hàm đăng xuất
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('username');
+    localStorage.removeItem('user_id');
+    navigate('/login');
+    window.location.reload();
+  };
 
   // Hàm phụ trợ để đổi màu nút nếu đang ở đúng trang đó
   const isActive = (path) => location.pathname === path ? "bg-blue-800" : "hover:bg-blue-700";
@@ -56,7 +68,7 @@ const DashboardLayout = () => {
 
         {/* Nút Logout ở cuối Sidebar cho giống ảnh thiết kế */}
         <div className="p-4 border-t border-blue-800">
-          <button className="flex items-center text-gray-300 hover:text-white transition w-full px-2">
+          <button onClick={handleLogout} className="flex items-center text-gray-300 hover:text-white transition w-full px-2">
             <LogOut size={20} />
             <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Logout</span>
           </button>
@@ -78,11 +90,11 @@ const DashboardLayout = () => {
               <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
             </button>
             <div className="text-right ml-4">
-              <p className="text-sm font-semibold text-gray-700">Phan Quang Hiếu</p>
+              <p className="text-sm font-semibold text-gray-700">{username}</p>
               <p className="text-xs text-gray-500">{userRole}</p>
             </div>
             <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-300">
-              PQ
+              {username.substring(0, 2).toUpperCase()}
             </div>
           </div>
         </header>

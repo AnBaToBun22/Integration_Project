@@ -3,8 +3,25 @@ from decimal import Decimal
 
 report_bp = Blueprint('report_bp', __name__)
 
+# --- API lấy danh sách các tháng có dữ liệu lương ---
+@report_bp.route('/api/payroll/months', methods=['GET'])
+def get_payroll_months():
+    try:
+        conn = current_app.get_payroll_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT MONTH(SalaryMonth) as month, YEAR(SalaryMonth) as year FROM salaries ORDER BY year DESC, month DESC")
+        records = cursor.fetchall()
+        return jsonify(records), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if 'conn' in locals(): conn.close()
+
 @report_bp.route('/api/payroll/details', methods=['GET'])
 def get_payroll_details():
+    # Nhận tháng/năm từ query params, mặc định = 9/2024 (khớp với data thực tế)
+    month = request.args.get('month', 9, type=int)
+    year = request.args.get('year', 2024, type=int)
     try:
         conn = current_app.get_payroll_db()
         cursor = conn.cursor()
@@ -14,9 +31,9 @@ def get_payroll_details():
             SELECT s.SalaryID, ep.FullName, s.BaseSalary, s.Bonus, s.Deductions, s.NetSalary 
             FROM salaries s
             JOIN employees_payroll ep ON s.EmployeeID = ep.EmployeeID
-            WHERE MONTH(s.SalaryMonth) = 12 AND YEAR(s.SalaryMonth) = 2025
+            WHERE MONTH(s.SalaryMonth) = %s AND YEAR(s.SalaryMonth) = %s
         """
-        cursor.execute(sql)
+        cursor.execute(sql, (month, year))
         records = cursor.fetchall()
         return jsonify(records), 200
     except Exception as e:
@@ -26,6 +43,9 @@ def get_payroll_details():
         
 @report_bp.route('/api/reports/payroll_list', methods=['GET'])
 def get_payroll_list():
+    # Nhận tháng/năm từ query params, mặc định = 9/2024 (khớp với data thực tế)
+    month = request.args.get('month', 9, type=int)
+    year = request.args.get('year', 2024, type=int)
     try:
         conn = current_app.get_payroll_db()
         cursor = conn.cursor()
@@ -33,9 +53,9 @@ def get_payroll_list():
             SELECT s.SalaryID, ep.FullName, s.BaseSalary, s.Bonus, s.Deductions, s.NetSalary 
             FROM salaries s
             JOIN employees_payroll ep ON s.EmployeeID = ep.EmployeeID
-            WHERE MONTH(s.SalaryMonth) = 12 AND YEAR(s.SalaryMonth) = 2025
+            WHERE MONTH(s.SalaryMonth) = %s AND YEAR(s.SalaryMonth) = %s
         """
-        cursor.execute(sql)
+        cursor.execute(sql, (month, year))
         records = cursor.fetchall()
         return jsonify(records), 200
     except Exception as e:
@@ -44,10 +64,10 @@ def get_payroll_list():
         if 'conn' in locals(): conn.close()
 
 # --- ROUTE 2: Báo cáo Chấm công (Cho biểu đồ Recharts) ---
-@report_bp.route('/api/reports/attendance', methods=['GET']) # ĐƯA ROUTE XUỐNG ĐÂY
+@report_bp.route('/api/reports/attendance', methods=['GET'])
 def get_attendance_report():
-    month = request.args.get('month', 12, type=int)
-    year = request.args.get('year', 2025, type=int)
+    month = request.args.get('month', 9, type=int)
+    year = request.args.get('year', 2024, type=int)
     show_all = request.args.get('showall', 'false').lower() == 'true'
     
     try:
