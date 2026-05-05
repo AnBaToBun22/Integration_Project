@@ -93,4 +93,8 @@ def create_app(config_class=Config):
     from .routes.department_routes import department_bp
     app.register_blueprint(department_bp)
 
+    # Phần tổng hợp dữ liệu cho Dashboard
+    from .routes.dashboard_routes import dashboard_bp
+    app.register_blueprint(dashboard_bp)
+
     return app
