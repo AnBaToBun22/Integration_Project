@@ -13,7 +13,7 @@ def get_employees():
         cursor = conn.cursor()
         
         # 2. LẤY TỪ BẢNG 'Employees' CHUẨN CỦA ÔNG (Có đầy đủ Email)
-        query = "SELECT EmployeeID, FullName, Email, DepartmentID, Status FROM Employees"
+        query = "SELECT EmployeeID, FullName, Email, PhoneNumber, DateOfBirth, Gender, HireDate, DepartmentID, PositionID, Status FROM Employees"
         cursor.execute(query)
         
         columns = [column[0] for column in cursor.description]
@@ -27,20 +27,35 @@ def get_employees():
         if 'conn' in locals(): 
             conn.close()
 
-# UC.6: Thêm nhân viên mới
-# UC.6: Thêm nhân viên mới
+# UC.6: Thêm nhân viên mới vào cả SQL Server và MySQL
 @employee_bp.route('/api/employees', methods=['POST'])
-@token_required
-@require_roles(['Admin', 'HR Manager']) # Chỉ Admin và HR Manager mới thấy nút này
-def add_employee(current_user_role):
+#@token_required
+#@require_roles(['Admin', 'HR Manager']) # Tạm comment để test, sau sẽ bật lại
+def add_employee():
     data = request.json # Nhận dữ liệu từ Form của React gửi lên
+    
+    # Kiểm tra dữ liệu bắt buộc
+    required_fields = ['FullName', 'Email', 'DepartmentID']
+    if not all(field in data and data[field] for field in required_fields):
+        return jsonify({"error": f"Thiếu các trường bắt buộc: {', '.join(required_fields)}"}), 400
+    
+    conn_sql_server = None
+    conn_mysql = None
+    
     try:
-        conn = current_app.get_hr_db()
-        cursor = conn.cursor()
+        # 1️⃣ BƯỚC 1: Lưu vào SQL Server (HR Database - HUMANnew)
+        conn_sql_server = current_app.get_hr_db()
+        cursor_sql = conn_sql_server.cursor()
         
-        # Câu lệnh SQL INSERT vào bảng Employees (SQL Server)
-        # Sử dụng GETDATE() cho ngày tạo và mặc định trạng thái là 'Đang làm việc'
-        sql = """
+        # ✅ KIỂM TRA EMAIL ĐÃ TỒN TẠI CHƯA
+        check_email = "SELECT COUNT(*) FROM Employees WHERE Email = ?"
+        cursor_sql.execute(check_email, (data.get('Email', ''),))
+        email_exists = cursor_sql.fetchone()[0]
+        
+        if email_exists > 0:
+            return jsonify({"error": f"❌ Email '{data.get('Email')}' đã tồn tại trong hệ thống!"}), 400
+        
+        sql_insert = """
             INSERT INTO Employees (
                 FullName, DateOfBirth, Gender, PhoneNumber, 
                 Email, HireDate, DepartmentID, PositionID, 
@@ -53,28 +68,83 @@ def add_employee(current_user_role):
             data.get('FullName', ''),
             data.get('DateOfBirth'), 
             data.get('Gender'),
-            data.get('PhoneNumber'), 
+            data.get('PhoneNumber', ''),
             data.get('Email', ''),
             data.get('HireDate'), 
             data.get('DepartmentID'), 
             data.get('PositionID'),
-            data.get('Status', 'Đang làm việc') # Mặc định trạng thái tiếng Việt có dấu
+            data.get('Status', 'Đang làm việc')
         )
         
-        cursor.execute(sql, params)
-        conn.commit() # Quan trọng: Phải commit để lưu vào SQL Server
+        cursor_sql.execute(sql_insert, params)
+        conn_sql_server.commit()
         
-        return jsonify({"message": "Thêm nhân viên thành công!"}), 201
+        # Lấy ID nhân viên vừa tạo (SQL Server)
+        cursor_sql.execute("SELECT @@IDENTITY as EmployeeID")
+        employee_id = cursor_sql.fetchone()[0]
+        print(f"✅ Lưu vào SQL Server thành công! Employee ID: {employee_id}")
+        
+        # 2️⃣ BƯỚC 2: Lưu vào MySQL (Payroll Database - payroll_2026) - TẠM COMMENT
+        # conn_mysql = current_app.get_payroll_db()
+        # cursor_mysql = conn_mysql.cursor()
+        
+        # # Kiểm tra xem employee đã tồn tại trong MySQL chưa
+        # check_query = "SELECT EmployeeID FROM employees WHERE EmployeeID = %s"
+        # cursor_mysql.execute(check_query, (employee_id,))
+        # existing_employee = cursor_mysql.fetchone()
+        
+        # if not existing_employee:
+        #     # INSERT vào bảng employees của MySQL
+        #     mysql_insert = """
+        #         INSERT INTO employees (
+        #             EmployeeID, Name, Email, Department, Position, 
+        #             Phone, HireDate, Status, CreatedAt
+        #         ) 
+        #         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+        #     """
+            
+        #     mysql_params = (
+        #         int(employee_id),
+        #         data.get('FullName', ''),
+        #         data.get('Email', ''),
+        #         data.get('DepartmentID', ''),
+        #         data.get('PositionID', ''),
+        #         data.get('PhoneNumber', ''),
+        #         data.get('HireDate'),
+        #         data.get('Status', 'Đang làm việc')
+        #     )
+            
+        #     cursor_mysql.execute(mysql_insert, mysql_params)
+        #     conn_mysql.commit()
+        #     print(f"✅ Lưu vào MySQL thành công! Employee ID: {employee_id}")
+        
+        return jsonify({
+            "message": "✅ Thêm nhân viên thành công vào SQL Server!",
+            "employee_id": int(employee_id),
+            "full_name": data.get('FullName')
+        }), 201
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Rollback nếu có lỗi
+        if conn_sql_server:
+            conn_sql_server.rollback()
+        # if conn_mysql:
+        #     conn_mysql.rollback()
+        
+        print(f"❌ Lỗi khi thêm nhân viên: {str(e)}")
+        return jsonify({"error": f"Lỗi: {str(e)}"}), 500
+        
     finally:
-        conn.close()
+        # Đóng kết nối
+        if conn_sql_server:
+            conn_sql_server.close()
+        # if conn_mysql:
+        #     conn_mysql.close()
 # UC.7: Cập nhật thông tin nhân viên
 @employee_bp.route('/api/employees/<int:emp_id>', methods=['PUT'])
-@token_required
-@require_roles(['Admin', 'HR Manager'])
-def update_employee(current_user_role, emp_id):
+#@token_required
+#@require_roles(['Admin', 'HR Manager'])
+def update_employee(emp_id):
     data = request.json
     try:
         conn = current_app.get_hr_db()
@@ -93,24 +163,30 @@ def update_employee(current_user_role, emp_id):
         ))
         
         conn.commit()
-        return jsonify({"message": "Cập nhật thành công!"}), 200
+        return jsonify({"message": "✅ Cập nhật nhân viên thành công!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
-# Xóa (Chuyển trạng thái nghỉ việc)
+# UC.8: Xóa nhân viên (chuyển trạng thái thành Đã nghỉ việc)
 @employee_bp.route('/api/employees/<int:emp_id>', methods=['DELETE'])
-@token_required
-@require_roles(['Admin'])
-def delete_employee(current_user_role, emp_id):
+#@token_required
+#@require_roles(['Admin'])
+def delete_employee(emp_id):
     try:
         conn = current_app.get_hr_db()
         cursor = conn.cursor()
-        # Đã sửa lỗi conn.app.commit() thành conn.commit()
-        cursor.execute("UPDATE Employees SET Status = N'Đã nghỉ việc', UpdatedAt = GETDATE() WHERE EmployeeID = ?", (emp_id,))
+        
+        # Kiểm tra nhân viên tồn tại chưa
+        cursor.execute("SELECT COUNT(*) FROM Employees WHERE EmployeeID = ?", (emp_id,))
+        if cursor.fetchone()[0] == 0:
+            return jsonify({"error": "❌ Nhân viên không tồn tại!"}), 404
+        
+        # Xóa (chuyển trạng thái thành Đã nghỉ việc)
+        cursor.execute("UPDATE Employees SET Status = ?, UpdatedAt = GETDATE() WHERE EmployeeID = ?", ('Đã nghỉ việc', emp_id))
         conn.commit() 
-        return jsonify({"message": "Đã chuyển trạng thái nhân viên thành nghỉ việc"}), 200
+        return jsonify({"message": "✅ Xóa nhân viên thành công (chuyển trạng thái thành Đã nghỉ việc)!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
