@@ -30,5 +30,5 @@ class Config:
     # 3. Payroll Database (MySQL - payroll)
     PAYROLL_DB_HOST = os.environ.get('PAYROLL_DB_HOST', 'localhost')
     PAYROLL_DB_USER = os.environ.get('PAYROLL_DB_USER', 'root')
-    PAYROLL_DB_PASSWORD = os.environ.get('PAYROLL_DB_PASSWORD', '06012005')
-    PAYROLL_DB_NAME = os.environ.get('PAYROLL_DB_NAME', 'payroll_2026')
+    PAYROLL_DB_PASSWORD = os.environ.get('PAYROLL_DB_PASSWORD', '123456')
+    PAYROLL_DB_NAME = os.environ.get('PAYROLL_DB_NAME', 'payroll')

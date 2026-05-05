@@ -22,6 +22,8 @@ def create_app(config_class=Config):
     db.init_app(app)
 
     with app.app_context():
+        # Import models để SQLAlchemy biết cần tạo bảng gì
+        from .models import User
         # Tự động tạo bảng cho database Auth nếu chưa có
         db.create_all()
 
@@ -75,6 +77,10 @@ def create_app(config_class=Config):
 
 
     # ĐĂNG KÝ CÁC BLUEPRINT (Các file Route)
+    # Phần xác thực đăng nhập / đăng ký
+    from .routes.auth_routes import auth_bp
+    app.register_blueprint(auth_bp)
+
     # Phần báo cáo của Phan Quang Hiếu (UC.11, 12, 13)
     from .routes.report_routes import report_bp
     app.register_blueprint(report_bp)

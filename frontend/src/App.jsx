@@ -13,14 +13,15 @@ import Payroll from './pages/Payroll';
 import Department from './pages/Department';
 
 function App() {
-  // Giả lập trạng thái đăng nhập
-  const isAuthenticated = true;
+  // Kiểm tra trạng thái đăng nhập thật từ localStorage
+  const isAuthenticated = !!localStorage.getItem('token');
 
   return (
     <Router>
       <Routes>
         {/* Trang đăng nhập nằm ngoài Layout chung */}
-        <Route path="/login" element={<Login />} />
+        {/* Nếu đã login rồi mà vào /login thì redirect về Dashboard */}
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
         
         {/* Các trang yêu cầu đăng nhập sẽ nằm bên trong Layout */}
         <Route 
@@ -33,7 +34,7 @@ function App() {
           {/* TRANG NHÂN SỰ */}
           <Route path="hr" element={<HRData />} />
           
-          {/* TRANG LƯƠNG: 2. ĐÃ GẮN ĐÚNG COMPONENT */}
+          {/* TRANG LƯƠNG */}
           <Route path="payroll" element={<Payroll />} />
           
           {/* TRANG BÁO CÁO */}

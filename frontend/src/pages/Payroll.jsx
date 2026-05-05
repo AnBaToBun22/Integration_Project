@@ -26,7 +26,7 @@ const Payroll = () => {
   return (
     <div className="bg-white p-6 rounded-xl shadow-md">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-blue-900">Bảng Lương Tháng 12/2025</h2>
+        <h2 className="text-2xl font-bold text-blue-900">Bảng Lương Tháng 9/2024</h2>
       </div>
 
       <div className="overflow-x-auto">
