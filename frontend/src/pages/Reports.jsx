@@ -4,8 +4,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 export default function Reports() {
     const [data, setData] = useState([]);
-    const [month, setMonth] = useState('12');
-    const [year, setYear] = useState('2025');
+    const [month, setMonth] = useState('9');
+    const [year, setYear] = useState('2024');
     const [errorMsg, setErrorMsg] = useState('');
 
     useEffect(() => {
