@@ -16,7 +16,7 @@ class User(db.Model):
     # Role cho RBAC: khớp với auth_middleware.py (Admin, HR Manager, Employee)
     role = db.Column(db.String(50), nullable=False, default='Employee')
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
     def set_password(self, password):
         """Mã hóa mật khẩu trước khi lưu (không bao giờ lưu mật khẩu thô)"""
@@ -28,3 +28,19 @@ class User(db.Model):
 
     def __repr__(self):
         return f'<User {self.username} - {self.role}>'
+class AuditLog(db.Model):
+    __tablename__ = 'audit_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), nullable=False, default="Admin")
+    action = db.Column(db.String(50), nullable=False)
+    detail = db.Column(db.String(255), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.now)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "action": self.action,
+            "detail": self.detail,
+            "timestamp": self.timestamp.strftime("%d/%m/%Y %H:%M:%S") 
+        }

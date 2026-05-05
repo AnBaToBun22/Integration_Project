@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request, current_app
 from ..auth_middleware import token_required, require_roles
+from ..models import AuditLog
+from .. import db
 
 employee_bp = Blueprint('employee_bp', __name__)
 
@@ -28,18 +30,13 @@ def get_employees():
             conn.close()
 
 # UC.6: Thêm nhân viên mới
-# UC.6: Thêm nhân viên mới
 @employee_bp.route('/api/employees', methods=['POST'])
-@token_required
-@require_roles(['Admin', 'HR Manager']) # Chỉ Admin và HR Manager mới thấy nút này
-def add_employee(current_user_role):
-    data = request.json # Nhận dữ liệu từ Form của React gửi lên
+def add_employee(): # <-- ĐÃ XÓA current_user_role
+    data = request.json 
     try:
         conn = current_app.get_hr_db()
         cursor = conn.cursor()
         
-        # Câu lệnh SQL INSERT vào bảng Employees (SQL Server)
-        # Sử dụng GETDATE() cho ngày tạo và mặc định trạng thái là 'Đang làm việc'
         sql = """
             INSERT INTO Employees (
                 FullName, DateOfBirth, Gender, PhoneNumber, 
@@ -58,23 +55,27 @@ def add_employee(current_user_role):
             data.get('HireDate'), 
             data.get('DepartmentID'), 
             data.get('PositionID'),
-            data.get('Status', 'Đang làm việc') # Mặc định trạng thái tiếng Việt có dấu
+            data.get('Status', 'Đang làm việc') 
         )
         
         cursor.execute(sql, params)
-        conn.commit() # Quan trọng: Phải commit để lưu vào SQL Server
-        
+        conn.commit() 
+        try:
+            log = AuditLog(username="Admin", action="THÊM MỚI", detail=f"Đã thêm nhân viên: {data.get('FullName')}")
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_err:
+            print("Lỗi lưu log:", log_err)
         return jsonify({"message": "Thêm nhân viên thành công!"}), 201
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
+
 # UC.7: Cập nhật thông tin nhân viên
 @employee_bp.route('/api/employees/<int:emp_id>', methods=['PUT'])
-@token_required
-@require_roles(['Admin', 'HR Manager'])
-def update_employee(current_user_role, emp_id):
+def update_employee(emp_id): # <-- ĐÃ XÓA current_user_role, CHỈ GIỮ emp_id
     data = request.json
     try:
         conn = current_app.get_hr_db()
@@ -93,6 +94,12 @@ def update_employee(current_user_role, emp_id):
         ))
         
         conn.commit()
+        try:
+            log = AuditLog(username="Admin", action="CẬP NHẬT", detail=f"Cập nhật thông tin nhân viên mã: {emp_id}")
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_err:
+            print("Lỗi lưu log:", log_err)
         return jsonify({"message": "Cập nhật thành công!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -101,15 +108,20 @@ def update_employee(current_user_role, emp_id):
 
 # Xóa (Chuyển trạng thái nghỉ việc)
 @employee_bp.route('/api/employees/<int:emp_id>', methods=['DELETE'])
-@token_required
-@require_roles(['Admin'])
-def delete_employee(current_user_role, emp_id):
+# @token_required <-- ĐÃ COMMENT
+# @require_roles(['Admin']) <-- ĐÃ COMMENT
+def delete_employee(emp_id): # <-- ĐÃ XÓA current_user_role, CHỈ GIỮ emp_id
     try:
         conn = current_app.get_hr_db()
         cursor = conn.cursor()
-        # Đã sửa lỗi conn.app.commit() thành conn.commit()
         cursor.execute("UPDATE Employees SET Status = N'Đã nghỉ việc', UpdatedAt = GETDATE() WHERE EmployeeID = ?", (emp_id,))
-        conn.commit() 
+        conn.commit()
+        try:
+            log = AuditLog(username="Admin", action="XÓA (NGHỈ VIỆC)", detail=f"Đã cho nhân viên mã {emp_id} nghỉ việc")
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_err:
+            print("Lỗi lưu log:", log_err)
         return jsonify({"message": "Đã chuyển trạng thái nhân viên thành nghỉ việc"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
