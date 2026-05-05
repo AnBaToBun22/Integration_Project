@@ -86,11 +86,10 @@ const Dashboard = () => {
             {/* Trạng thái kết nối */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div
-                    className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                        stats?.hr_connected
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${stats?.hr_connected
                             ? "bg-emerald-50 border-emerald-200"
                             : "bg-red-50 border-red-200"
-                    }`}
+                        }`}
                 >
                     <Database
                         size={20}
@@ -120,11 +119,10 @@ const Dashboard = () => {
                 </div>
 
                 <div
-                    className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                        stats?.payroll_connected
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${stats?.payroll_connected
                             ? "bg-emerald-50 border-emerald-200"
                             : "bg-red-50 border-red-200"
-                    }`}
+                        }`}
                 >
                     <Database
                         size={20}
@@ -291,7 +289,7 @@ const Dashboard = () => {
                             <li>
                                 Database:{" "}
                                 <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">
-                                    payrollnew
+                                    payroll
                                 </code>
                             </li>
                             <li>Quản lý: Bảng lương, Chấm công</li>

@@ -5,6 +5,7 @@ import { Home, Users, DollarSign, BarChart2, Settings, Bell, LogOut, Menu } from
 
 const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -14,19 +15,22 @@ const DashboardLayout = () => {
 
   // Hàm đăng xuất
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('username');
-    localStorage.removeItem('user_id');
-    navigate('/login');
-    window.location.reload();
+    setIsLoggingOut(true);
+    setTimeout(() => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      localStorage.removeItem('username');
+      localStorage.removeItem('user_id');
+      navigate('/login');
+      window.location.reload();
+    }, 500); // Wait for the fade-out animation
   };
 
   // Hàm phụ trợ để đổi màu nút nếu đang ở đúng trang đó
   const isActive = (path) => location.pathname === path ? "bg-blue-800" : "hover:bg-blue-700";
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans">
+    <div className={`flex h-screen bg-gray-50 font-sans transition-opacity duration-500 ${isLoggingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
       
       {/* SIDEBAR */}
       <aside className={`bg-blue-900 text-white transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} flex flex-col`}>
@@ -68,9 +72,22 @@ const DashboardLayout = () => {
 
         {/* Nút Logout ở cuối Sidebar cho giống ảnh thiết kế */}
         <div className="p-4 border-t border-blue-800">
-          <button onClick={handleLogout} className="flex items-center text-gray-300 hover:text-white transition w-full px-2">
-            <LogOut size={20} />
-            <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Logout</span>
+          <button 
+            onClick={handleLogout} 
+            disabled={isLoggingOut}
+            className="flex items-center text-gray-300 hover:text-white transition-all duration-300 hover:translate-x-1 w-full px-2"
+          >
+            {isLoggingOut ? (
+              <svg className="animate-spin h-5 w-5 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <LogOut size={20} />
+            )}
+            <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>
+              {isLoggingOut ? 'Đang thoát...' : 'Logout'}
+            </span>
           </button>
         </div>
       </aside>

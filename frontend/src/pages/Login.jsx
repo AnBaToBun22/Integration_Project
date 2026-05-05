@@ -107,12 +107,13 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 flex items-center justify-center p-4">
       {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full opacity-10 blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500 rounded-full opacity-10 blur-3xl"></div>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500 rounded-full opacity-20 blur-3xl animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500 rounded-full opacity-20 blur-3xl animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500 rounded-full opacity-20 blur-3xl animate-blob animation-delay-4000"></div>
       </div>
 
-      <div className="relative max-w-md w-full">
+      <div className="relative max-w-md w-full animate-fade-in-up">
         {/* Card chính */}
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-white/20">
           <div className="p-8">
@@ -132,23 +133,23 @@ const Login = () => {
             </div>
 
             {/* Tab chuyển đổi Login / Register */}
-            <div className="flex mb-6 bg-gray-100 rounded-xl p-1">
+            <div className="flex mb-6 bg-gray-100 rounded-xl p-1 relative z-10">
               <button 
                 onClick={() => toggleMode()} 
-                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 transform active:scale-95 ${
                   !isRegisterMode 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-white text-blue-600 shadow-md scale-100' 
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                 }`}
               >
                 Đăng Nhập
               </button>
               <button 
                 onClick={() => toggleMode()} 
-                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 transform active:scale-95 ${
                   isRegisterMode 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-white text-blue-600 shadow-md scale-100' 
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                 }`}
               >
                 Đăng Ký
@@ -175,7 +176,8 @@ const Login = () => {
               </div>
             )}
 
-            {/* ========== FORM ĐĂNG NHẬP ========== */}
+            {/* ========== FORM ĐĂNG NHẬP / ĐĂNG KÝ ========== */}
+            <div key={isRegisterMode ? 'register' : 'login'} className="animate-form-switch">
             {!isRegisterMode ? (
               <form onSubmit={handleLogin} className="space-y-5">
                 <div>
@@ -316,12 +318,13 @@ const Login = () => {
                 </button>
               </form>
             )}
+            </div>
           </div>
           
           {/* Footer */}
           <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 text-center">
             <p className="text-xs text-gray-400">
-              Enterprise Integration Dashboard &copy; 2024
+              Enterprise Integration Dashboard &copy; 2026
             </p>
           </div>
         </div>
