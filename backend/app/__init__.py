@@ -1,21 +1,20 @@
 import os
-from flask import Flask, jsonify  # Đã sửa: bỏ import app ở đây
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import pyodbc
 import pymysql
 from .config import Config
-from flask import current_app
 
 # Khởi tạo extension SQLAlchemy cho database Auth (SQLite)
 db = SQLAlchemy()
 
+
 def create_app(config_class=Config):
-    app = Flask(__name__)
+    app = Flask(__name__)  # PHẢI tạo app TRƯỚC
     app.config.from_object(config_class)
 
     # Bật CORS để React (Port 5173) có thể gọi API Python (Port 5000)
-    # Đây là chìa khóa để giải quyết lỗi "Dữ liệu bị chặn"
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     # 1. Khởi tạo Auth DB (SQLite)
@@ -30,13 +29,9 @@ def create_app(config_class=Config):
     # 2. Định nghĩa kết nối SQL Server (HR DB - HUMAN_2025)
     def get_hr_db():
         try:
-            # Lấy chuỗi kết nối từ file .env
             connstr = os.environ.get('HR_DB_CONNECTION_STRING')
-            
-            # Nếu không tìm thấy trong .env thì báo lỗi rõ ràng
             if not connstr:
                 raise ValueError("Chưa cấu hình HR_DB_CONNECTION_STRING trong file .env!")
-                
             conn = pyodbc.connect(connstr)
             return conn
         except Exception as e:
@@ -53,30 +48,29 @@ def create_app(config_class=Config):
             cursorclass=pymysql.cursors.DictCursor
         )
 
-    # Gắn hàm kết nối vào app để các routes (của Hiếu và Vinh) dễ dàng gọi tới
+    # Gắn hàm kết nối vào app
     app.get_hr_db = get_hr_db
     app.get_payroll_db = get_payroll_db_connection
 
     # API kiểm tra trạng thái hệ thống
     @app.route('/api/health')
     def health_check():
-     return jsonify({
-        "status": "online",
-        "message": "Dashboard API is running",
-        "hr_db_connected": test_db(app.get_hr_db),
-        "payroll_db_connected": test_db(app.get_payroll_db)
-    })
+        return jsonify({
+            "status": "online",
+            "message": "Dashboard API is running",
+            "hr_db_connected": test_db(app.get_hr_db),
+            "payroll_db_connected": test_db(app.get_payroll_db)
+        })
 
     def test_db(get_connection_func):
-     try:
-        conn = get_connection_func()
-        conn.close()
-        return True
-     except:
-        return False
+        try:
+            conn = get_connection_func()
+            conn.close()
+            return True
+        except:
+            return False
 
-
-    # ĐĂNG KÝ CÁC BLUEPRINT (Các file Route)
+    # ==================== ĐĂNG KÝ CÁC BLUEPRINT ====================
     # Phần xác thực đăng nhập / đăng ký
     from .routes.auth_routes import auth_bp
     app.register_blueprint(auth_bp)
@@ -92,5 +86,17 @@ def create_app(config_class=Config):
     # Phần quản lý phòng ban
     from .routes.department_routes import department_bp
     app.register_blueprint(department_bp)
+
+    # Phần chấm công
+    from .routes.attendance_routes import attendance_bp
+    app.register_blueprint(attendance_bp)
+
+    # Phần Dashboard Stats
+    from .routes.dashboard_routes import dashboard_bp
+    app.register_blueprint(dashboard_bp)
+
+    # ========== THÊM 2 DÒNG NÀY: Phần cập nhật lương và lịch sử lương ==========
+    from .routes.payroll_routes import payroll_bp
+    app.register_blueprint(payroll_bp)
 
     return app
