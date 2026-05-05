@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Trash2, Edit2, Plus } from "lucide-react";
-
-const API_URL = "http://localhost:5000/api/departments";
+import { getDepartments, createDepartment, updateDepartment, deleteDepartment } from "../services/api";
 
 const Department = () => {
   const [departments, setDepartments] = useState([]);
@@ -22,14 +21,13 @@ const Department = () => {
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      const response = await fetch(API_URL);
-      const data = await response.json();
+      const response = await getDepartments();
 
-      if (data.success) {
-        setDepartments(data.data);
+      if (response.data.success) {
+        setDepartments(response.data.data);
         setError(null);
       } else {
-        setError(data.message);
+        setError(response.data.message);
       }
     } catch (err) {
       setError(`Lỗi: ${err.message}`);
@@ -55,26 +53,23 @@ const Department = () => {
     }
 
     try {
-      const method = editingId ? "PUT" : "POST";
-      const url = editingId ? `${API_URL}/${editingId}` : API_URL;
+      let response;
+      
+      if (editingId) {
+        // Cập nhật phòng ban
+        response = await updateDepartment(editingId, formData);
+      } else {
+        // Thêm phòng ban mới
+        response = await createDepartment(formData);
+      }
 
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert(data.message);
+      if (response.data.success) {
+        alert(response.data.message);
         fetchDepartments();
         setFormData({ name: "" });
         setEditingId(null);
       } else {
-        alert(data.message);
+        alert(response.data.message);
       }
     } catch (err) {
       alert(`Lỗi: ${err.message}`);
@@ -90,17 +85,13 @@ const Department = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Bạn chắc chắn muốn xóa phòng ban này?")) {
       try {
-        const response = await fetch(`${API_URL}/${id}`, {
-          method: "DELETE",
-        });
+        const response = await deleteDepartment(id);
 
-        const data = await response.json();
-
-        if (data.success) {
-          alert(data.message);
+        if (response.data.success) {
+          alert(response.data.message);
           fetchDepartments();
         } else {
-          alert(data.message);
+          alert(response.data.message);
         }
       } catch (err) {
         alert(`Lỗi: ${err.message}`);

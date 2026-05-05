@@ -23,8 +23,8 @@ def get_all_departments():
         conn = get_hr_db_connection()
         cursor = conn.cursor()
         
-        # Query dữ liệu từ bảng departments_payroll
-        cursor.execute("SELECT DepartmentID, DepartmentName FROM departments_payroll ORDER BY DepartmentID")
+        # Query dữ liệu từ bảng Departments
+        cursor.execute("SELECT DepartmentID, DepartmentName FROM Departments ORDER BY DepartmentID")
         columns = [description[0] for description in cursor.description]
         departments = []
         
@@ -56,7 +56,7 @@ def get_department(dept_id):
         conn = get_hr_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT DepartmentID, DepartmentName FROM departments_payroll WHERE DepartmentID = ?", (dept_id,))
+        cursor.execute("SELECT DepartmentID, DepartmentName FROM Departments WHERE DepartmentID = ?", (dept_id,))
         row = cursor.fetchone()
         
         cursor.close()
@@ -107,7 +107,7 @@ def create_department():
         cursor = conn.cursor()
         
         # Kiểm tra tên phòng ban đã tồn tại chưa
-        cursor.execute("SELECT COUNT(*) FROM departments_payroll WHERE DepartmentName = ?", (dept_name,))
+        cursor.execute("SELECT COUNT(*) FROM Departments WHERE DepartmentName = ?", (dept_name,))
         if cursor.fetchone()[0] > 0:
             cursor.close()
             conn.close()
@@ -117,7 +117,7 @@ def create_department():
             }), 400
         
         # Insert phòng ban mới
-        cursor.execute("INSERT INTO departments_payroll (DepartmentName) VALUES (?)", (dept_name,))
+        cursor.execute("INSERT INTO Departments (DepartmentName) VALUES (?)", (dept_name,))
         conn.commit()
         
         cursor.close()
@@ -158,7 +158,7 @@ def update_department(dept_id):
         cursor = conn.cursor()
         
         # Kiểm tra phòng ban có tồn tại không
-        cursor.execute("SELECT COUNT(*) FROM departments_payroll WHERE DepartmentID = ?", (dept_id,))
+        cursor.execute("SELECT COUNT(*) FROM Departments WHERE DepartmentID = ?", (dept_id,))
         if cursor.fetchone()[0] == 0:
             cursor.close()
             conn.close()
@@ -168,7 +168,7 @@ def update_department(dept_id):
             }), 404
         
         # Kiểm tra tên phòng ban đã được sử dụng bởi phòng ban khác chưa
-        cursor.execute("SELECT COUNT(*) FROM departments_payroll WHERE DepartmentName = ? AND DepartmentID != ?", (dept_name, dept_id))
+        cursor.execute("SELECT COUNT(*) FROM Departments WHERE DepartmentName = ? AND DepartmentID != ?", (dept_name, dept_id))
         if cursor.fetchone()[0] > 0:
             cursor.close()
             conn.close()
@@ -178,7 +178,7 @@ def update_department(dept_id):
             }), 400
         
         # Update phòng ban
-        cursor.execute("UPDATE departments_payroll SET DepartmentName = ? WHERE DepartmentID = ?", (dept_name, dept_id))
+        cursor.execute("UPDATE Departments SET DepartmentName = ? WHERE DepartmentID = ?", (dept_name, dept_id))
         conn.commit()
         
         cursor.close()
@@ -203,7 +203,7 @@ def delete_department(dept_id):
         cursor = conn.cursor()
         
         # Kiểm tra phòng ban có tồn tại không
-        cursor.execute("SELECT COUNT(*) FROM departments_payroll WHERE DepartmentID = ?", (dept_id,))
+        cursor.execute("SELECT COUNT(*) FROM Departments WHERE DepartmentID = ?", (dept_id,))
         if cursor.fetchone()[0] == 0:
             cursor.close()
             conn.close()
@@ -212,8 +212,20 @@ def delete_department(dept_id):
                 'message': 'Phòng ban không tồn tại'
             }), 404
         
-        # Xóa phòng ban
-        cursor.execute("DELETE FROM departments_payroll WHERE DepartmentID = ?", (dept_id,))
+        # Kiểm tra có nhân viên nào trong phòng ban này không
+        cursor.execute("SELECT COUNT(*) FROM Employees WHERE DepartmentID = ?", (dept_id,))
+        employee_count = cursor.fetchone()[0]
+        
+        if employee_count > 0:
+            cursor.close()
+            conn.close()
+            return jsonify({
+                'success': False,
+                'message': f'Không thể xóa! Phòng ban này còn {employee_count} nhân viên. Vui lòng chuyển nhân viên sang phòng ban khác trước.'
+            }), 400
+        
+        # Xóa phòng ban (nếu không có nhân viên)
+        cursor.execute("DELETE FROM Departments WHERE DepartmentID = ?", (dept_id,))
         conn.commit()
         
         cursor.close()
