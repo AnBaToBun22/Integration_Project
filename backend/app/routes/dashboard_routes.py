@@ -1,9 +1,12 @@
 from flask import Blueprint, jsonify, current_app
 from decimal import Decimal
+from ..auth_middleware import token_required, require_roles
 
 dashboard_bp = Blueprint('dashboard_bp', __name__)
 
 @dashboard_bp.route('/api/dashboard/stats', methods=['GET'])
+@token_required
+@require_roles(['Admin', 'HR Manager'])
 def get_dashboard_stats():
     """API tổng hợp dữ liệu cho trang Dashboard"""
     stats = {

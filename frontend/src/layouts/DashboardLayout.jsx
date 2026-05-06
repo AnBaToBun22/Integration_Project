@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-// Đã thêm icon Home và Settings để đủ bộ menu
-import { Home, Users, DollarSign, BarChart2, Settings, Bell, LogOut, Menu } from 'lucide-react';
+import { Home, Users, DollarSign, BarChart2, Settings, Bell, LogOut, Menu, Briefcase, Building2, AlertTriangle } from 'lucide-react';
 
 const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -23,10 +22,21 @@ const DashboardLayout = () => {
       localStorage.removeItem('user_id');
       navigate('/login');
       window.location.reload();
-    }, 500); // Wait for the fade-out animation
+    }, 500);
   };
 
-  // Hàm phụ trợ để đổi màu nút nếu đang ở đúng trang đó
+  // Menu items
+  const menuItems = [
+    { path: '/', icon: Home, label: 'Dashboard' },
+    { path: '/hr', icon: Users, label: 'Nhân viên' },
+    { path: '/departments', icon: Building2, label: 'Phòng ban' },
+    { path: '/positions', icon: Briefcase, label: 'Chức vụ' },
+    { path: '/payroll', icon: DollarSign, label: 'Bảng lương' },
+    { path: '/reports', icon: BarChart2, label: 'Báo cáo' },
+    { path: '/alerts', icon: AlertTriangle, label: 'Cảnh báo' },
+    { path: '/settings', icon: Settings, label: 'Cài đặt' },
+  ];
+
   const isActive = (path) => location.pathname === path ? "bg-blue-800" : "hover:bg-blue-700";
 
   return (
@@ -41,41 +51,23 @@ const DashboardLayout = () => {
           {!isSidebarOpen && <span className="font-bold text-xl">ED</span>}
         </div>
 
-        <nav className="flex-1 py-4 px-3 space-y-2">
-          {/* Sửa lại Link chuẩn theo App.jsx */}
-          <Link to="/" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/')}`}>
-            <Home size={20} />
-            <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Dashboard</span>
-          </Link>
-
-          <Link to="/hr" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/hr')}`}>
-            <Users size={20} />
-            <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>HR Data</span>
-          </Link>
-
-          <Link to="/departments" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/departments')}`}>
-            <Users size={20} />
-            <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Phòng ban</span>
-          </Link>
-
-          <Link to="/payroll" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/payroll')}`}>
-            <DollarSign size={20} />
-            <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Payroll</span>
-          </Link>
-
-          {/* ĐÂY LÀ PHẦN CỦA QUANG HIẾU: Tab Báo cáo */}
-          <Link to="/reports" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/reports')}`}>
-            <BarChart2 size={20} />
-            <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Báo cáo</span>
-          </Link>
-
-          <Link to="/settings" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/settings')}`}>
-            <Settings size={20} />
-            <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Settings</span>
-          </Link>
+        <nav className="flex-1 py-4 px-3 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link 
+                key={item.path}
+                to={item.path} 
+                className={`flex items-center px-4 py-3 rounded-lg transition ${isActive(item.path)}`}
+              >
+                <Icon size={20} />
+                <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Nút Logout ở cuối Sidebar cho giống ảnh thiết kế */}
+        {/* Nút Logout ở cuối Sidebar */}
         <div className="p-4 border-t border-blue-800">
           <button 
             onClick={handleLogout} 
@@ -91,7 +83,7 @@ const DashboardLayout = () => {
               <LogOut size={20} />
             )}
             <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>
-              {isLoggingOut ? 'Đang thoát...' : 'Logout'}
+              {isLoggingOut ? 'Đang thoát...' : 'Đăng xuất'}
             </span>
           </button>
         </div>
@@ -107,10 +99,10 @@ const DashboardLayout = () => {
           </button>
 
           <div className="flex items-center space-x-4">
-            <button className="text-gray-400 hover:text-blue-600 relative">
+            <Link to="/alerts" className="text-gray-400 hover:text-blue-600 relative">
               <Bell size={20} />
               <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-            </button>
+            </Link>
             <div className="text-right ml-4">
               <p className="text-sm font-semibold text-gray-700">{username}</p>
               <p className="text-xs text-gray-500">{userRole}</p>
@@ -121,7 +113,7 @@ const DashboardLayout = () => {
           </div>
         </header>
 
-        {/* PAGE CONTENT (Outlet sẽ tự động nhúng Component Reports của bạn vào đây) */}
+        {/* PAGE CONTENT */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
           <Outlet /> 
         </main>

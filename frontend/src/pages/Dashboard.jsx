@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { getDashboardStats } from "../services/api";
 import {
     RefreshCw,
     Users,
@@ -20,9 +20,7 @@ const Dashboard = () => {
     const fetchStats = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(
-                "http://127.0.0.1:5000/api/dashboard/stats",
-            );
+            const response = await getDashboardStats();
             setStats(response.data);
             setLastRefresh(new Date());
         } catch (error) {

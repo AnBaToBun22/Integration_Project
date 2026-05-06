@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Edit2, Plus, Building2 } from "lucide-react";
-import { getDepartments, createDepartment, updateDepartment, deleteDepartment } from "../services/api";
+import { Trash2, Edit2, Plus, Briefcase } from "lucide-react";
+import { getPositions, createPosition, updatePosition, deletePosition } from "../services/api";
 
-const Department = () => {
-  const [departments, setDepartments] = useState([]);
+const Positions = () => {
+  const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({ name: "" });
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
-    fetchDepartments();
+    fetchPositions();
   }, []);
 
-  const fetchDepartments = async () => {
+  const fetchPositions = async () => {
     try {
       setLoading(true);
-      const response = await getDepartments();
+      const response = await getPositions();
       if (response.data.success) {
-        setDepartments(response.data.data);
+        setPositions(response.data.data);
         setError(null);
       } else {
         setError(response.data.message);
@@ -33,21 +33,21 @@ const Department = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert("Vui lòng nhập tên phòng ban");
+      alert("Vui lòng nhập tên chức vụ");
       return;
     }
 
     try {
       let response;
       if (editingId) {
-        response = await updateDepartment(editingId, formData);
+        response = await updatePosition(editingId, formData);
       } else {
-        response = await createDepartment(formData);
+        response = await createPosition(formData);
       }
 
       if (response.data.success) {
         alert(response.data.message);
-        fetchDepartments();
+        fetchPositions();
         setFormData({ name: "" });
         setEditingId(null);
       } else {
@@ -58,18 +58,18 @@ const Department = () => {
     }
   };
 
-  const handleEdit = (dept) => {
-    setFormData({ name: dept.name });
-    setEditingId(dept.id);
+  const handleEdit = (pos) => {
+    setFormData({ name: pos.name });
+    setEditingId(pos.id);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Bạn chắc chắn muốn xóa phòng ban này?")) {
+    if (window.confirm("Bạn chắc chắn muốn xóa chức vụ này?")) {
       try {
-        const response = await deleteDepartment(id);
+        const response = await deletePosition(id);
         if (response.data.success) {
           alert(response.data.message);
-          fetchDepartments();
+          fetchPositions();
         } else {
           alert(response.data.message);
         }
@@ -87,9 +87,9 @@ const Department = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-800">Quản lý Phòng ban</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Quản lý Chức vụ</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Quản lý toàn bộ các phòng ban • Tự động đồng bộ sang Payroll (MySQL)
+          Quản lý toàn bộ các chức vụ • Tự động đồng bộ sang Payroll (MySQL)
         </p>
       </div>
 
@@ -104,28 +104,28 @@ const Department = () => {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Building2 size={20} className="text-blue-600" />
-              {editingId ? "Sửa Phòng ban" : "Thêm Phòng ban"}
+              <Briefcase size={20} className="text-purple-600" />
+              {editingId ? "Sửa Chức vụ" : "Thêm Chức vụ"}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tên Phòng ban *
+                  Tên Chức vụ *
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ name: e.target.value })}
-                  placeholder="Nhập tên phòng ban"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  placeholder="Nhập tên chức vụ"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
                 />
               </div>
 
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition flex items-center justify-center gap-2"
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded-lg transition flex items-center justify-center gap-2"
                 >
                   <Plus size={18} />
                   {editingId ? "Cập nhật" : "Thêm mới"}
@@ -149,7 +149,7 @@ const Department = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-800">
-                Danh sách Phòng ban {loading ? "..." : `(${departments.length})`}
+                Danh sách Chức vụ {loading ? "..." : `(${positions.length})`}
               </h3>
             </div>
 
@@ -161,33 +161,33 @@ const Department = () => {
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">STT</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Tên Phòng ban</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Tên Chức vụ</th>
                       <th className="px-6 py-3 text-center text-sm font-semibold text-gray-600">Số NV</th>
                       <th className="px-6 py-3 text-center text-sm font-semibold text-gray-600">Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {departments.length > 0 ? (
-                      departments.map((dept, index) => (
-                        <tr key={dept.id} className="border-b border-gray-100 hover:bg-blue-50/30 transition">
+                    {positions.length > 0 ? (
+                      positions.map((pos, index) => (
+                        <tr key={pos.id} className="border-b border-gray-100 hover:bg-purple-50/30 transition">
                           <td className="px-6 py-4 text-sm text-gray-500">{index + 1}</td>
-                          <td className="px-6 py-4 text-sm font-medium text-gray-800">{dept.name}</td>
+                          <td className="px-6 py-4 text-sm font-medium text-gray-800">{pos.name}</td>
                           <td className="px-6 py-4 text-center">
-                            <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-lg text-xs font-medium">
-                              {dept.employee_count || 0} nhân viên
+                            <span className="bg-purple-100 text-purple-700 px-2.5 py-1 rounded-lg text-xs font-medium">
+                              {pos.employee_count || 0} nhân viên
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
                             <div className="flex items-center justify-center gap-1">
                               <button
-                                onClick={() => handleEdit(dept)}
+                                onClick={() => handleEdit(pos)}
                                 className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
                                 title="Sửa"
                               >
                                 <Edit2 size={16} />
                               </button>
                               <button
-                                onClick={() => handleDelete(dept.id)}
+                                onClick={() => handleDelete(pos.id)}
                                 className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
                                 title="Xóa"
                               >
@@ -200,7 +200,7 @@ const Department = () => {
                     ) : (
                       <tr>
                         <td colSpan="4" className="px-6 py-12 text-center text-gray-400 italic">
-                          Chưa có phòng ban nào.
+                          Chưa có chức vụ nào.
                         </td>
                       </tr>
                     )}
@@ -215,4 +215,4 @@ const Department = () => {
   );
 };
 
-export default Department;
+export default Positions;

@@ -11,6 +11,9 @@ import Reports from './pages/Reports';
 import HRData from './pages/HRData';
 import Payroll from './pages/Payroll';
 import Department from './pages/Department';
+import Positions from './pages/Positions';
+import Alerts from './pages/Alerts';
+import Settings from './pages/Settings';
 
 function App() {
   // Kiểm tra trạng thái đăng nhập thật từ localStorage
@@ -20,7 +23,6 @@ function App() {
     <Router>
       <Routes>
         {/* Trang đăng nhập nằm ngoài Layout chung */}
-        {/* Nếu đã login rồi mà vào /login thì redirect về Dashboard */}
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
         
         {/* Các trang yêu cầu đăng nhập sẽ nằm bên trong Layout */}
@@ -42,9 +44,15 @@ function App() {
 
           {/* TRANG PHÒNG BAN */}
           <Route path="departments" element={<Department />} />
+
+          {/* TRANG CHỨC VỤ */}
+          <Route path="positions" element={<Positions />} />
+
+          {/* TRANG CẢNH BÁO */}
+          <Route path="alerts" element={<Alerts />} />
           
           {/* TRANG CÀI ĐẶT */}
-          <Route path="settings" element={<div className="p-4 text-2xl font-bold text-gray-700">Settings Module (Pending)</div>} />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         {/* Chuyển hướng nếu vào link lạ */}

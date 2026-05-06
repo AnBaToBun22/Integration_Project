@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 import jwt
-import datetime
+from datetime import datetime, timedelta, timezone
 import os
 
 from .. import db
@@ -76,7 +76,7 @@ def login():
         'user_id': user.id,
         'username': user.username,
         'role': user.role,
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+        'exp': datetime.now(timezone.utc) + timedelta(hours=24)
     }, SECRET_KEY, algorithm="HS256")
 
     return jsonify({
