@@ -138,7 +138,7 @@ const HRData = () => {
     <div className="bg-white p-6 rounded-xl shadow-md">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-blue-900">Quản lý Nhân viên</h2>
+        <h2 className="text-2xl font-bold text-blue-900">Quản lý Nhân viên (Integration System)</h2>
         <button
           onClick={() => {
             resetForm();
@@ -215,8 +215,8 @@ const HRData = () => {
                   </td>
                   <td className="p-3 border text-center">
                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${emp.Status === 'Đang làm việc' ? 'bg-green-100 text-green-700' :
-                        emp.Status === 'Thử việc' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-red-100 text-red-700'
+                      emp.Status === 'Thử việc' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-red-100 text-red-700'
                       }`}>
                       {emp.Status}
                     </span>
@@ -261,7 +261,7 @@ const HRData = () => {
               <p className="text-blue-50 text-sm mt-1 opacity-80">
                 {editingId ? `Đang chỉnh sửa hồ sơ nhân viên ID: ${editingId}` : 'Vui lòng điền các thông tin cần thiết bên dưới'}
               </p>
-              <button 
+              <button
                 onClick={handleCloseForm}
                 className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-all text-white"
               >
@@ -408,14 +408,14 @@ const HRData = () => {
 
             {/* Footer Buttons */}
             <div className="p-6 bg-gray-50 border-t flex justify-end gap-3">
-              <button 
-                onClick={handleCloseForm} 
+              <button
+                onClick={handleCloseForm}
                 className="premium-button-secondary"
               >
                 Hủy
               </button>
-              <button 
-                onClick={handleSaveEmployee} 
+              <button
+                onClick={handleSaveEmployee}
                 className="premium-button-primary"
               >
                 {editingId ? <CheckCircle size={18} /> : <Plus size={18} />}

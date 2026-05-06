@@ -3,7 +3,7 @@ import api from '../services/api';
 import { 
   DollarSign, Send, Calendar, CheckCircle, AlertCircle, 
   FileText, User, Printer, Download, CreditCard,
-  Clock, CheckCircle2, XCircle
+  Clock, CheckCircle2, XCircle, Edit2, X, Save, RefreshCw
 } from 'lucide-react';
 
 const Payroll = () => {
@@ -25,7 +25,14 @@ const Payroll = () => {
   const [payrollYear, setPayrollYear] = useState('2024');
   const [isLoadingMy, setIsLoadingMy] = useState(false);
 
-  // Fetch lương cá nhân
+  // State cho Xem TẤT CẢ bảng lương (Manager only)
+  const [salaryData, setSalaryData] = useState([]);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
+  const [editingSalary, setEditingSalary] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch lương cá nhân HOẶC Tất cả lương
   useEffect(() => {
     if (activeTab === 'mypayroll') {
       const fetchMyPayroll = async () => {
@@ -41,6 +48,20 @@ const Payroll = () => {
         }
       };
       fetchMyPayroll();
+    } else if (activeTab === 'allpayroll') {
+      const fetchAllPayroll = async () => {
+        setIsLoadingAll(true);
+        try {
+          const response = await api.get(`/reports/payroll_list?month=${payrollMonth}&year=${payrollYear}`);
+          setSalaryData(response.data);
+        } catch (error) {
+          console.error("Lỗi khi lấy danh sách lương:", error);
+          setSalaryData([]);
+        } finally {
+          setIsLoadingAll(false);
+        }
+      };
+      fetchAllPayroll();
     }
   }, [activeTab, payrollMonth, payrollYear, userId]);
 
@@ -57,6 +78,33 @@ const Payroll = () => {
       setMessage({ type: 'error', text: errorMsg });
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleEditSalary = (record) => {
+    setEditingSalary({ ...record });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateSalary = async () => {
+    if (!editingSalary) return;
+    setIsSaving(true);
+    try {
+      await api.put(`/payroll/${editingSalary.SalaryID}`, {
+        BaseSalary: editingSalary.BaseSalary,
+        Bonus: editingSalary.Bonus,
+        Deductions: editingSalary.Deductions
+      });
+      
+      // Reload data
+      const res = await api.get(`/reports/payroll_list?month=${payrollMonth}&year=${payrollYear}`);
+      setSalaryData(res.data);
+      setShowEditModal(false);
+      alert("Cập nhật lương thành công!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Lỗi cập nhật lương");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -84,12 +132,20 @@ const Payroll = () => {
             Phiếu lương của tôi
           </button>
           {(userRole === 'HR Manager' || userRole === 'Admin') && (
-            <button
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'notify' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-              onClick={() => setActiveTab('notify')}
-            >
-              Gửi thông báo lương
-            </button>
+            <>
+              <button
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'allpayroll' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                onClick={() => setActiveTab('allpayroll')}
+              >
+                Danh sách bảng lương
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'notify' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                onClick={() => setActiveTab('notify')}
+              >
+                Gửi thông báo lương
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -299,6 +355,151 @@ const Payroll = () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* 4. Tab: Danh sách bảng lương (Dành cho Manager) */}
+      {activeTab === 'allpayroll' && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <Calendar size={18} className="text-emerald-500" /> Quản lý kỳ lương {payrollMonth}/{payrollYear}
+              </h3>
+              <div className="flex gap-2">
+                <select value={payrollMonth} onChange={(e) => setPayrollMonth(e.target.value)}
+                  className="border-gray-200 rounded-xl text-sm">
+                  {[...Array(12).keys()].map(m => <option key={m+1} value={m+1}>Tháng {m+1}</option>)}
+                </select>
+                <select value={payrollYear} onChange={(e) => setPayrollYear(e.target.value)}
+                  className="border-gray-200 rounded-xl text-sm">
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                </select>
+              </div>
+           </div>
+
+           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-50 bg-gray-50/50">
+                 <h4 className="font-bold text-gray-800">Danh sách chi trả chi tiết</h4>
+              </div>
+              
+              {isLoadingAll ? (
+                <div className="p-20 text-center text-gray-400 font-medium">Đang tải dữ liệu bảng lương...</div>
+              ) : salaryData.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest">
+                        <th className="px-8 py-5">Họ Tên</th>
+                        <th className="px-8 py-5 text-right">Lương Cơ Bản</th>
+                        <th className="px-8 py-5 text-right">Thưởng</th>
+                        <th className="px-8 py-5 text-right">Khấu Trừ</th>
+                        <th className="px-8 py-5 text-right">Thực Nhận</th>
+                        <th className="px-8 py-5 text-center">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {salaryData.map((row) => (
+                        <tr key={row.SalaryID} className="hover:bg-emerald-50/30 transition-colors group">
+                          <td className="px-8 py-4 font-bold text-gray-700">{row.FullName}</td>
+                          <td className="px-8 py-4 text-right text-gray-500">{formatCurrency(row.BaseSalary)}</td>
+                          <td className="px-8 py-4 text-right text-emerald-600 font-bold">+{formatCurrency(row.Bonus)}</td>
+                          <td className="px-8 py-4 text-right text-red-500">-{formatCurrency(row.Deductions)}</td>
+                          <td className="px-8 py-4 text-right font-black text-gray-900">{formatCurrency(row.NetSalary)}</td>
+                          <td className="px-8 py-4 text-center">
+                            <button 
+                              onClick={() => handleEditSalary(row)}
+                              className="p-2 bg-emerald-50 text-emerald-600 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-emerald-600 hover:text-white"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                        <tr className="bg-emerald-900 text-white font-black">
+                            <td className="px-8 py-6">TỔNG QUỸ LƯƠNG</td>
+                            <td className="px-8 py-6 text-right opacity-70">{formatCurrency(salaryData.reduce((s, r) => s + r.BaseSalary, 0))}</td>
+                            <td className="px-8 py-6 text-right text-emerald-400">+{formatCurrency(salaryData.reduce((s, r) => s + r.Bonus, 0))}</td>
+                            <td className="px-8 py-6 text-right text-red-300">-{formatCurrency(salaryData.reduce((s, r) => s + r.Deductions, 0))}</td>
+                            <td className="px-8 py-6 text-right text-emerald-300 text-xl">{formatCurrency(salaryData.reduce((s, r) => s + r.NetSalary, 0))}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-20 text-center text-gray-400 italic">Không tìm thấy dữ liệu lương cho kỳ này.</div>
+              )}
+           </div>
+        </div>
+      )}
+
+      {/* Edit Salary Modal */}
+      {showEditModal && editingSalary && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+              <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+                  <div className="bg-emerald-900 p-6 text-white flex justify-between items-center">
+                      <div>
+                          <h3 className="text-xl font-bold">Chỉnh sửa lương</h3>
+                          <p className="text-emerald-200 text-xs mt-1">Nhân viên: {editingSalary.FullName}</p>
+                      </div>
+                      <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                          <X size={20} />
+                      </button>
+                  </div>
+                  
+                  <div className="p-8 space-y-6">
+                      <div>
+                          <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Lương cơ bản (VND)</label>
+                          <input 
+                              type="number" 
+                              value={editingSalary.BaseSalary}
+                              onChange={(e) => setEditingSalary({...editingSalary, BaseSalary: parseFloat(e.target.value)})}
+                              className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-bold text-gray-700"
+                          />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                          <div>
+                              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Thưởng (+)</label>
+                              <input 
+                                  type="number" 
+                                  value={editingSalary.Bonus}
+                                  onChange={(e) => setEditingSalary({...editingSalary, Bonus: parseFloat(e.target.value)})}
+                                  className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-4 focus:ring-emerald-100 outline-none transition-all font-bold text-emerald-600"
+                              />
+                          </div>
+                          <div>
+                              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Khấu trừ (-)</label>
+                              <input 
+                                  type="number" 
+                                  value={editingSalary.Deductions}
+                                  onChange={(e) => setEditingSalary({...editingSalary, Deductions: parseFloat(e.target.value)})}
+                                  className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-4 focus:ring-red-100 outline-none transition-all font-bold text-red-600"
+                              />
+                          </div>
+                      </div>
+                      
+                      <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
+                          <div>
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Thực nhận dự tính</p>
+                              <p className="text-xl font-black text-emerald-900">
+                                  {formatCurrency(editingSalary.BaseSalary + editingSalary.Bonus - editingSalary.Deductions)}
+                              </p>
+                          </div>
+                          <button 
+                              onClick={handleUpdateSalary}
+                              disabled={isSaving}
+                              className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                          >
+                              {isSaving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
+                              {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
       )}
     </div>
   );

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { 
+import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
-import { 
-    TrendingUp, Users, DollarSign, Calendar, 
+import {
+    TrendingUp, Users, DollarSign, Calendar,
     Download, FileText, Filter, ChevronRight,
     Award, AlertTriangle, CheckCircle2
 } from 'lucide-react';
@@ -14,15 +14,13 @@ export default function Reports() {
     const [activeTab, setActiveTab] = useState('summary');
     const [month, setMonth] = useState('9');
     const [year, setYear] = useState('2024');
-    
+
     const [summary, setSummary] = useState(null);
     const [attendanceData, setAttendanceData] = useState([]);
     const [salaryData, setSalaryData] = useState([]);
-    
+
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
-    const userRole = localStorage.getItem('role') || 'Employee';
-
 
     // Fetch Tổng quan
     useEffect(() => {
@@ -57,7 +55,6 @@ export default function Reports() {
         fetchData();
     }, [month, year, activeTab]);
 
-
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
@@ -71,11 +68,11 @@ export default function Reports() {
                 <div>
                     <h2 className="text-3xl font-black text-gray-900 tracking-tight">Hệ Thống Báo Cáo Tích Hợp</h2>
                     <p className="text-gray-500 mt-1 flex items-center gap-2">
-                        <CheckCircle2 size={16} className="text-emerald-500" /> 
+                        <CheckCircle2 size={16} className="text-emerald-500" />
                         Dữ liệu realtime từ HR (SQL Server) & Payroll (MySQL)
                     </p>
                 </div>
-                
+
                 <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-2xl border border-gray-100">
                     <div className="flex items-center gap-2 px-3 border-r border-gray-200">
                         <Filter size={16} className="text-gray-400" />
@@ -83,7 +80,7 @@ export default function Reports() {
                     </div>
                     <select value={month} onChange={(e) => setMonth(e.target.value)}
                         className="bg-transparent border-none text-sm font-bold text-gray-700 focus:ring-0 cursor-pointer">
-                        {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>Tháng {i+1}</option>)}
+                        {[...Array(12)].map((_, i) => <option key={i + 1} value={i + 1}>Tháng {i + 1}</option>)}
                     </select>
                     <select value={year} onChange={(e) => setYear(e.target.value)}
                         className="bg-transparent border-none text-sm font-bold text-gray-700 focus:ring-0 cursor-pointer">
@@ -102,17 +99,16 @@ export default function Reports() {
                 ].map(tab => (
                     <button key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`px-6 py-3 rounded-2xl font-bold transition-all flex items-center gap-2 shadow-sm ${
-                            activeTab === tab.id 
-                                ? 'bg-blue-900 text-white shadow-blue-200' 
+                        className={`px-6 py-3 rounded-2xl font-bold transition-all flex items-center gap-2 shadow-sm ${activeTab === tab.id
+                                ? 'bg-blue-900 text-white shadow-blue-200'
                                 : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
-                        }`}
+                            }`}
                     >
                         <tab.icon size={18} />
                         {tab.label}
                     </button>
                 ))}
-                
+
                 <div className="ml-auto flex gap-2">
                     <button className="p-3 bg-white text-gray-400 hover:text-emerald-600 rounded-2xl border border-gray-100 shadow-sm transition-all hover:scale-105">
                         <Download size={20} />
@@ -132,7 +128,7 @@ export default function Reports() {
 
             {/* TAB CONTENT AREA */}
             <div className="min-h-[500px]">
-                
+
                 {/* 1. Tab: Tổng quan (Summary) */}
                 {activeTab === 'summary' && summary && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-4">
@@ -164,7 +160,7 @@ export default function Reports() {
                         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
                             <div className="flex justify-between items-start">
                                 <div className="p-3 bg-purple-50 rounded-2xl text-purple-600"><Award size={24} /></div>
-                                <span className="text-[10px] font-black text-purple-500 bg-purple-50 px-2 py-1 rounded-full">Active</span>
+                                <span className="text-[10px] font-black text-purple-500 bg-purple-50 px-2 py-1 rounded-full">Kỳ này</span>
                             </div>
                             <div>
                                 <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Phòng ban</p>
@@ -192,22 +188,22 @@ export default function Reports() {
                             </h4>
                             <div className="h-[300px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart 
+                                    <BarChart
                                         data={[
                                             { name: 'Quỹ Lương', value: summary.payroll.total_salary },
-                                            { name: 'Thưởng', value: summary.payroll.total_salary * 0.12 },
-                                            { name: 'Bảo hiểm', value: summary.payroll.total_salary * 0.21 }
+                                            { name: 'Thưởng (Dự tính)', value: summary.payroll.total_salary * 0.15 },
+                                            { name: 'Bảo hiểm (Dự tính)', value: summary.payroll.total_salary * 0.21 }
                                         ]}
                                         margin={{ top: 10, right: 30, left: 40, bottom: 0 }}
                                     >
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                                         <XAxis dataKey="name" tick={{ fontSize: 12, fontWeight: 500 }} />
-                                        <YAxis 
-                                            tickFormatter={(value) => value >= 1000000 ? `${(value/1000000).toFixed(0)}M` : value}
+                                        <YAxis
+                                            tickFormatter={(value) => value >= 1000000 ? `${(value / 1000000).toFixed(0)}M` : value}
                                             tick={{ fontSize: 11, fill: '#94a3b8' }}
                                             width={60}
                                         />
-                                        <Tooltip 
+                                        <Tooltip
                                             formatter={(value) => formatCurrency(value)}
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                         />
@@ -218,8 +214,8 @@ export default function Reports() {
                         </div>
 
                         <div className="lg:col-span-1 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                             <h4 className="font-bold text-gray-800 mb-6">Cơ cấu phòng ban</h4>
-                             <div className="h-[300px] flex items-center justify-center">
+                            <h4 className="font-bold text-gray-800 mb-6">Cơ cấu phòng ban</h4>
+                            <div className="h-[300px] flex items-center justify-center">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie data={[
@@ -236,7 +232,7 @@ export default function Reports() {
                                     <p className="text-2xl font-black text-emerald-600">{summary.hr.active_employees}</p>
                                     <p className="text-[10px] text-gray-400 font-bold uppercase">Active</p>
                                 </div>
-                             </div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -276,8 +272,8 @@ export default function Reports() {
                 {activeTab === 'salary' && (
                     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in">
                         <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-                             <h4 className="font-bold text-gray-800">Bảng chi trả lương chi tiết</h4>
-                             <span className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold">Kỳ lương {month}/{year}</span>
+                            <h4 className="font-bold text-gray-800">Bảng chi trả lương chi tiết</h4>
+                            <span className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold">Kỳ lương {month}/{year}</span>
                         </div>
                         {isLoading ? (
                             <div className="p-20 text-center text-gray-400">Đang truy xuất bảng lương...</div>
@@ -328,7 +324,6 @@ export default function Reports() {
 
 
             </div>
-
         </div>
     );
 }

@@ -1,7 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app
-from ..auth_middleware import token_required, require_roles
-from ..models import AuditLog
-from .. import db
+from ..auth_middleware import token_required
 from decimal import Decimal
 
 report_bp = Blueprint('report_bp', __name__)
@@ -99,8 +97,6 @@ def get_payroll_list(current_user_role, **kwargs):
         if 'conn' in locals(): conn.close()
 
 
-
-
 # --- Báo cáo Chấm công ---
 @report_bp.route('/api/reports/attendance', methods=['GET'])
 @token_required
@@ -116,9 +112,9 @@ def get_attendance_report(current_user_role, **kwargs):
         sql_query = """
             SELECT 
                 ep.FullName, 
-                MAX(a.WorkDays) AS TotalWorkDays,
-                MAX(a.LeaveDays) AS TotalLeaveDays,
-                MAX(a.AbsentDays) AS TotalAbsentDays
+                SUM(a.WorkDays) AS TotalWorkDays,
+                SUM(a.LeaveDays) AS TotalLeaveDays,
+                SUM(a.AbsentDays) AS TotalAbsentDays
             FROM attendance a
             JOIN employees_payroll ep ON a.EmployeeID = ep.EmployeeID
             WHERE MONTH(a.AttendanceMonth) = %s AND YEAR(a.AttendanceMonth) = %s
@@ -151,6 +147,37 @@ def get_attendance_report(current_user_role, **kwargs):
         if 'conn' in locals(): conn.close()
 
 
+# --- Báo cáo Cổ tức (MỚI) ---
+@report_bp.route('/api/reports/dividends', methods=['GET'])
+@token_required
+def get_dividends_report(current_user_role, **kwargs):
+    """Báo cáo cổ tức từ HR DB (SQL Server)"""
+    try:
+        conn = current_app.get_hr_db()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT d.DividendID, e.FullName, d.DividendAmount, d.DividendDate
+            FROM Dividends d
+            JOIN Employees e ON d.EmployeeID = e.EmployeeID
+            ORDER BY d.DividendDate DESC
+        """)
+        
+        columns = [col[0] for col in cursor.description]
+        records = []
+        for row in cursor.fetchall():
+            record = dict(zip(columns, row))
+            record['DividendAmount'] = float(record['DividendAmount'])
+            if record.get('DividendDate') and hasattr(record['DividendDate'], 'isoformat'):
+                record['DividendDate'] = record['DividendDate'].isoformat()
+            records.append(record)
+        
+        return jsonify(records), 200
+    except Exception as e:
+        print(f"[ERROR] Lấy báo cáo cổ tức thất bại: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if 'conn' in locals(): conn.close()
 
 
 # --- Báo cáo tổng hợp (MỚI) ---
