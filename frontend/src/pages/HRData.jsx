@@ -105,7 +105,7 @@ const HRData = () => {
   };
 
   const handleDeleteEmployee = async (employeeId, employeeName) => {
-    if (!window.confirm(`Bạn chắc chắn muốn cho nhân viên "${employeeName}" nghỉ việc?`)) {
+    if (!window.confirm(`Bạn chắc chắn muốn XÓA VĨNH VIỄN nhân viên "${employeeName}" khỏi hệ thống? Thao tác này không thể hoàn tác.`)) {
       return;
     }
 
@@ -138,7 +138,7 @@ const HRData = () => {
     <div className="bg-white p-6 rounded-xl shadow-md">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-blue-900">Quản lý Nhân viên (Integration System)</h2>
+        <h2 className="text-2xl font-bold text-blue-900">Quản lý Nhân viên</h2>
         <button
           onClick={() => {
             resetForm();
@@ -174,7 +174,6 @@ const HRData = () => {
         >
           <option value="all">Tất cả trạng thái</option>
           <option value="Đang làm việc">Đang làm việc</option>
-          <option value="Đã nghỉ việc">Đã nghỉ việc</option>
           <option value="Thử việc">Thử việc</option>
         </select>
       </div>
@@ -397,7 +396,6 @@ const HRData = () => {
                         onChange={(e) => setFormData({ ...formData, Status: e.target.value })}
                       >
                         <option value="Đang làm việc">Đang làm việc</option>
-                        <option value="Đã nghỉ việc">Đã nghỉ việc</option>
                         <option value="Thử việc">Thử việc</option>
                       </select>
                     </div>
