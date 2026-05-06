@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify, request, current_app
 from ..auth_middleware import token_required, require_roles
+from app import db
+from ..models import AuditLog
+import json
 
 employee_bp = Blueprint('employee_bp', __name__)
 
@@ -30,7 +33,7 @@ def get_employees():
 # UC.6: Thêm nhân viên mới vào cả SQL Server và MySQL
 @employee_bp.route('/api/employees', methods=['POST'])
 #@token_required
-#@require_roles(['Admin', 'HR Manager']) # Tạm comment để test, sau sẽ bật lại
+@require_roles(['Admin', 'HR Manager'])
 def add_employee():
     data = request.json # Nhận dữ liệu từ Form của React gửi lên
     
@@ -83,6 +86,23 @@ def add_employee():
         cursor_sql.execute("SELECT @@IDENTITY as EmployeeID")
         employee_id = cursor_sql.fetchone()[0]
         print(f"✅ Lưu vào SQL Server thành công! Employee ID: {employee_id}")
+
+        # Ghi AuditLog vào Auth DB (SQLite) bằng SQLAlchemy
+        try:
+            log = AuditLog(
+                action='create',
+                entity='Employee',
+                entity_id=str(employee_id),
+                user_role=getattr(request, 'user_role', None),
+                details=json.dumps({
+                    'new': data
+                }, default=str)
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as _log_exc:
+            # Không để việc ghi log làm hỏng luồng chính
+            print(f"[AuditLog] Lỗi khi lưu log: {_log_exc}")
         
         # 2️⃣ BƯỚC 2: Lưu vào MySQL (Payroll Database - payroll_2026) - TẠM COMMENT
         # conn_mysql = current_app.get_payroll_db()
@@ -143,7 +163,7 @@ def add_employee():
 # UC.7: Cập nhật thông tin nhân viên
 @employee_bp.route('/api/employees/<int:emp_id>', methods=['PUT'])
 #@token_required
-#@require_roles(['Admin', 'HR Manager'])
+@require_roles(['Admin', 'HR Manager'])
 def update_employee(emp_id):
     data = request.json
     try:
@@ -163,6 +183,21 @@ def update_employee(emp_id):
         ))
         
         conn.commit()
+
+        # Audit: cập nhật
+        try:
+            log = AuditLog(
+                action='update',
+                entity='Employee',
+                entity_id=str(emp_id),
+                user_role=getattr(request, 'user_role', None),
+                details=json.dumps({'updated': data}, default=str)
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as _log_exc:
+            print(f"[AuditLog] Lỗi khi lưu log cập nhật: {_log_exc}")
+
         return jsonify({"message": "✅ Cập nhật nhân viên thành công!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -172,7 +207,7 @@ def update_employee(emp_id):
 # UC.8: Xóa nhân viên (chuyển trạng thái thành Đã nghỉ việc)
 @employee_bp.route('/api/employees/<int:emp_id>', methods=['DELETE'])
 #@token_required
-#@require_roles(['Admin'])
+@require_roles(['Admin'])
 def delete_employee(emp_id):
     try:
         conn = current_app.get_hr_db()
@@ -185,10 +220,36 @@ def delete_employee(emp_id):
         
         # Xóa (chuyển trạng thái thành Đã nghỉ việc)
         cursor.execute("UPDATE Employees SET Status = ?, UpdatedAt = GETDATE() WHERE EmployeeID = ?", ('Đã nghỉ việc', emp_id))
-        conn.commit() 
+        conn.commit()
+
+        # Audit: xóa (thực ra là chuyển trạng thái)
+        try:
+            log = AuditLog(
+                action='delete',
+                entity='Employee',
+                entity_id=str(emp_id),
+                user_role=getattr(request, 'user_role', None),
+                details=json.dumps({'note': 'soft-delete - set Status to Đã nghỉ việc'}, default=str)
+            )
+            db.session.add(log)
+            db.session.commit()
+        except Exception as _log_exc:
+            print(f"[AuditLog] Lỗi khi lưu log xóa: {_log_exc}")
+
         return jsonify({"message": "✅ Xóa nhân viên thành công (chuyển trạng thái thành Đã nghỉ việc)!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
+    
+@employee_bp.route('/api/audit-logs', methods=['GET'])
+@token_required
+@require_roles(['Admin'])
+def get_audit_logs():
+    try:
+        logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(200).all()
+        return jsonify([l.to_dict() for l in logs]), 200
+    except Exception as e:
+        print(f"[AuditLog] Lỗi khi lấy logs: {e}")
+        return jsonify({'error': str(e)}), 500
 

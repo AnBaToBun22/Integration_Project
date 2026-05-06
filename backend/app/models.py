@@ -28,3 +28,30 @@ class User(db.Model):
 
     def __repr__(self):
         return f'<User {self.username} - {self.role}>'
+
+
+class AuditLog(db.Model):
+    """Lưu lịch sử hoạt động hệ thống (thêm/sửa/xóa) cho mục đích audit."""
+    __tablename__ = 'audit_logs'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    action = db.Column(db.String(50), nullable=False)  # create/update/delete
+    entity = db.Column(db.String(100), nullable=False)  # e.g., Employee
+    entity_id = db.Column(db.String(64), nullable=True)
+    user_role = db.Column(db.String(80), nullable=True)
+    details = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<AuditLog {self.action} {self.entity}:{self.entity_id} by {self.user_role}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'action': self.action,
+            'entity': self.entity,
+            'entity_id': self.entity_id,
+            'user_role': self.user_role,
+            'details': self.details,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None
+        }

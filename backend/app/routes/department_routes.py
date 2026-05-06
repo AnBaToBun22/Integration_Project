@@ -1,26 +1,13 @@
-from flask import Blueprint, jsonify, request
-from app import db
-import pyodbc
-import os
+from flask import Blueprint, jsonify, request, current_app
+from ..auth_middleware import token_required, require_roles
 
 department_bp = Blueprint('departments', __name__, url_prefix='/api/departments')
-
-def get_hr_db_connection():
-    """Kết nối tới HR Database (SQL Server)"""
-    try:
-        connstr = os.environ.get('HR_DB_CONNECTION_STRING')
-        if not connstr:
-            raise ValueError("HR_DB_CONNECTION_STRING chưa được cấu hình")
-        return pyodbc.connect(connstr)
-    except Exception as e:
-        print(f"[ERROR] Không thể kết nối SQL Server: {e}")
-        raise e
 
 @department_bp.route('/', methods=['GET'])
 def get_all_departments():
     """Lấy danh sách tất cả phòng ban"""
     try:
-        conn = get_hr_db_connection()
+        conn = current_app.get_hr_db()
         cursor = conn.cursor()
         
         # Query dữ liệu từ bảng Departments
@@ -53,7 +40,7 @@ def get_all_departments():
 def get_department(dept_id):
     """Lấy chi tiết một phòng ban"""
     try:
-        conn = get_hr_db_connection()
+        conn = current_app.get_hr_db()
         cursor = conn.cursor()
         
         cursor.execute("SELECT DepartmentID, DepartmentName FROM Departments WHERE DepartmentID = ?", (dept_id,))
@@ -83,6 +70,8 @@ def get_department(dept_id):
         }), 500
 
 @department_bp.route('/', methods=['POST'])
+@token_required
+@require_roles(['Admin', 'HR Manager'])
 def create_department():
     """Tạo phòng ban mới"""
     try:
@@ -103,7 +92,7 @@ def create_department():
                 'message': 'Tên phòng ban không được để trống'
             }), 400
         
-        conn = get_hr_db_connection()
+        conn = current_app.get_hr_db()
         cursor = conn.cursor()
         
         # Kiểm tra tên phòng ban đã tồn tại chưa
@@ -135,6 +124,8 @@ def create_department():
         }), 500
 
 @department_bp.route('/<int:dept_id>', methods=['PUT'])
+@token_required
+@require_roles(['Admin', 'HR Manager'])
 def update_department(dept_id):
     """Cập nhật thông tin phòng ban"""
     try:
@@ -154,7 +145,7 @@ def update_department(dept_id):
                 'message': 'Tên phòng ban không được để trống'
             }), 400
         
-        conn = get_hr_db_connection()
+        conn = current_app.get_hr_db()
         cursor = conn.cursor()
         
         # Kiểm tra phòng ban có tồn tại không
@@ -196,10 +187,12 @@ def update_department(dept_id):
         }), 500
 
 @department_bp.route('/<int:dept_id>', methods=['DELETE'])
+@token_required
+@require_roles(['Admin', 'HR Manager'])
 def delete_department(dept_id):
     """Xóa phòng ban"""
     try:
-        conn = get_hr_db_connection()
+        conn = current_app.get_hr_db()
         cursor = conn.cursor()
         
         # Kiểm tra phòng ban có tồn tại không
