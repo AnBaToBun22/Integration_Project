@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 // Đã thêm icon Home và Settings để đủ bộ menu
-import { Home, Users, DollarSign, BarChart2, Settings, Bell, LogOut, Menu } from 'lucide-react';
+import { Home, Users, DollarSign, BarChart2, Settings, Bell, LogOut, Menu, Calendar } from 'lucide-react';
+import NotificationBell from '../components/NotificationBell';
 
 const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -53,6 +54,11 @@ const DashboardLayout = () => {
             <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>HR Data</span>
           </Link>
 
+          <Link to="/events" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/events')}`}>
+            <Calendar size={20} />
+            <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Sự kiện</span>
+          </Link>
+
           <Link to="/payroll" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/payroll')}`}>
             <DollarSign size={20} />
             <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Payroll</span>
@@ -102,10 +108,7 @@ const DashboardLayout = () => {
           </button>
 
           <div className="flex items-center space-x-4">
-            <button className="text-gray-400 hover:text-blue-600 relative">
-              <Bell size={20} />
-              <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-            </button>
+            <NotificationBell />
             <div className="text-right ml-4">
               <p className="text-sm font-semibold text-gray-700">{username}</p>
               <p className="text-xs text-gray-500">{userRole}</p>
