@@ -53,30 +53,33 @@ def create_app(config_class=Config):
             cursorclass=pymysql.cursors.DictCursor
         )
 
-    # Gắn hàm kết nối vào app để các routes (của Hiếu và Vinh) dễ dàng gọi tới
+    # Gắn hàm kết nối vào app để các routes dễ dàng gọi tới
     app.get_hr_db = get_hr_db
     app.get_payroll_db = get_payroll_db_connection
 
     # API kiểm tra trạng thái hệ thống
     @app.route('/api/health')
     def health_check():
-     return jsonify({
-        "status": "online",
-        "message": "Dashboard API is running",
-        "hr_db_connected": test_db(app.get_hr_db),
-        "payroll_db_connected": test_db(app.get_payroll_db)
-    })
+        return jsonify({
+            "status": "online",
+            "message": "Dashboard API is running",
+            "hr_db_connected": test_db(app.get_hr_db),
+            "payroll_db_connected": test_db(app.get_payroll_db)
+        })
 
     def test_db(get_connection_func):
-     try:
-        conn = get_connection_func()
-        conn.close()
-        return True
-     except:
-        return False
+        try:
+            conn = get_connection_func()
+            conn.close()
+            return True
+        except:
+            return False
 
 
-    # ĐĂNG KÝ CÁC BLUEPRINT (Các file Route)
+    # ==========================================
+    # ĐĂNG KÝ CÁC BLUEPRINT (Gộp từ cả 2 nhánh)
+    # ==========================================
+    
     # Phần xác thực đăng nhập / đăng ký
     from .routes.auth_routes import auth_bp
     app.register_blueprint(auth_bp)
@@ -88,12 +91,16 @@ def create_app(config_class=Config):
     # Phần quản lý nhân viên hỗ trợ Vinh (UC.5, 6, 7)
     from .routes.employee_routes import employee_bp
     app.register_blueprint(employee_bp)
+    
+    # Phần quản lý thông báo và lương (UC.14, UC.15) -> Từ nhánh qhieu
+    from .routes.notification_routes import notification_bp
+    app.register_blueprint(notification_bp)
 
-    # Phần quản lý phòng ban
+    # Phần quản lý phòng ban -> Từ nhánh main
     from .routes.department_routes import department_bp
     app.register_blueprint(department_bp)
 
-    # Phần tổng hợp dữ liệu cho Dashboard
+    # Phần tổng hợp dữ liệu cho Dashboard -> Từ nhánh main
     from .routes.dashboard_routes import dashboard_bp
     app.register_blueprint(dashboard_bp)
 

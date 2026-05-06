@@ -1,8 +1,17 @@
 from flask import Blueprint, jsonify, current_app
 from decimal import Decimal
-
+from ..models import AuditLog
 dashboard_bp = Blueprint('dashboard_bp', __name__)
 
+@dashboard_bp.route('/api/logs', methods=['GET'])
+def get_audit_logs():
+    try:
+        # Lấy danh sách log, sắp xếp mới nhất lên đầu
+        logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(50).all()
+        return jsonify([log.to_dict() for log in logs]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 @dashboard_bp.route('/api/dashboard/stats', methods=['GET'])
 def get_dashboard_stats():
     """API tổng hợp dữ liệu cho trang Dashboard"""

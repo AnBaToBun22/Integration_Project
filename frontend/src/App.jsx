@@ -9,19 +9,19 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Reports from './pages/Reports';
 import HRData from './pages/HRData';
+import Events from './pages/Events';
 import Payroll from './pages/Payroll';
 import Department from './pages/Department';
 
 function App() {
-  // Kiểm tra trạng thái đăng nhập thật từ localStorage
-  const isAuthenticated = !!localStorage.getItem('token');
+  // Giả lập trạng thái đăng nhập
+  const isAuthenticated = true;
 
   return (
     <Router>
       <Routes>
         {/* Trang đăng nhập nằm ngoài Layout chung */}
-        {/* Nếu đã login rồi mà vào /login thì redirect về Dashboard */}
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
+        <Route path="/login" element={<Login />} />
         
         {/* Các trang yêu cầu đăng nhập sẽ nằm bên trong Layout */}
         <Route 
@@ -31,13 +31,16 @@ function App() {
           {/* Trang chủ mặc định */}
           <Route index element={<Dashboard />} />
           
-          {/* TRANG NHÂN SỰ */}
+          {/* TRANG NHÂN SỰ: Đã xóa dòng Pending, chỉ giữ lại HRData */}
           <Route path="hr" element={<HRData />} />
           
-          {/* TRANG LƯƠNG */}
+          {/* TRANG SỰ KIỆN: UC.14 */}
+          <Route path="events" element={<Events />} />
+          
+          {/* TRANG LƯƠNG: UC.15 */}
           <Route path="payroll" element={<Payroll />} />
           
-          {/* TRANG BÁO CÁO */}
+          {/* TRANG BÁO CÁO: UC.11, 12, 13 của Hiếu */}
           <Route path="reports" element={<Reports />} /> 
 
           {/* TRANG PHÒNG BAN */}
