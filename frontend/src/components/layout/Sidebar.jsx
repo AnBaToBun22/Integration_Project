@@ -3,12 +3,14 @@ import { NavLink } from 'react-router-dom';
 import { Home, Users, DollarSign, LogOut, Settings } from 'lucide-react';
 
 const Sidebar = () => {
-  const navItems = [
-    { name: 'Dashboard', path: '/', icon: Home },
-    { name: 'HR Data (HUMAN_2025)', path: '/hr', icon: Users },
-    { name: 'Payroll', path: '/payroll', icon: DollarSign },
-    { name: 'Settings', path: '/settings', icon: Settings },
-  ];
+      const navItems = [
+        { name: 'Dashboard', path: '/', icon: Home },
+        { name: 'HR Data', path: '/hr', icon: Users },
+        { name: 'Phòng ban', path: '/departments', icon: Users },
+        { name: 'Payroll', path: '/payroll', icon: DollarSign },
+        { name: 'Báo cáo', path: '/reports', icon: DollarSign },
+        { name: 'Settings', path: '/settings', icon: Settings },
+      ];
 
   return (
     <div className="w-64 bg-gray-900 text-white min-h-screen flex flex-col shadow-xl">

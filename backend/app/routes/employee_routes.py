@@ -15,7 +15,7 @@ def get_employees():
         cursor = conn.cursor()
         
         # 2. LẤY TỪ BẢNG 'Employees' CHUẨN CỦA ÔNG (Có đầy đủ Email)
-        query = "SELECT EmployeeID, FullName, Email, DepartmentID, Status FROM Employees"
+        query = "SELECT EmployeeID, FullName, Email, PhoneNumber, DateOfBirth, Gender, HireDate, DepartmentID, PositionID, Status FROM Employees"
         cursor.execute(query)
         
         columns = [column[0] for column in cursor.description]
@@ -29,15 +29,35 @@ def get_employees():
         if 'conn' in locals(): 
             conn.close()
 
-# UC.6: Thêm nhân viên mới
+
+# UC.6: Thêm nhân viên mới vào cả SQL Server và MySQL
 @employee_bp.route('/api/employees', methods=['POST'])
-def add_employee(): # <-- ĐÃ XÓA current_user_role
-    data = request.json 
+#@token_required
+#@require_roles(['Admin', 'HR Manager']) # Tạm comment để test, sau sẽ bật lại
+def add_employee():
+    data = request.json # Nhận dữ liệu từ Form của React gửi lên
+    
+    # Kiểm tra dữ liệu bắt buộc (Từ nhánh main)
+    required_fields = ['FullName', 'Email', 'DepartmentID']
+    if not all(field in data and data[field] for field in required_fields):
+        return jsonify({"error": f"Thiếu các trường bắt buộc: {', '.join(required_fields)}"}), 400
+    
+    conn_sql_server = None
+    
     try:
-        conn = current_app.get_hr_db()
-        cursor = conn.cursor()
+        # 1️⃣ BƯỚC 1: Lưu vào SQL Server (HR Database - HUMAN_2025)
+        conn_sql_server = current_app.get_hr_db()
+        cursor_sql = conn_sql_server.cursor()
         
-        sql = """
+        # ✅ KIỂM TRA EMAIL ĐÃ TỒN TẠI CHƯA (Từ nhánh main)
+        check_email = "SELECT COUNT(*) FROM Employees WHERE Email = ?"
+        cursor_sql.execute(check_email, (data.get('Email', ''),))
+        email_exists = cursor_sql.fetchone()[0]
+        
+        if email_exists > 0:
+            return jsonify({"error": f"❌ Email '{data.get('Email')}' đã tồn tại trong hệ thống!"}), 400
+        
+        sql_insert = """
             INSERT INTO Employees (
                 FullName, DateOfBirth, Gender, PhoneNumber, 
                 Email, HireDate, DepartmentID, PositionID, 
@@ -50,32 +70,55 @@ def add_employee(): # <-- ĐÃ XÓA current_user_role
             data.get('FullName', ''),
             data.get('DateOfBirth'), 
             data.get('Gender'),
-            data.get('PhoneNumber'), 
+            data.get('PhoneNumber', ''),
             data.get('Email', ''),
             data.get('HireDate'), 
             data.get('DepartmentID'), 
             data.get('PositionID'),
-            data.get('Status', 'Đang làm việc') 
+            data.get('Status', 'Đang làm việc')
         )
         
-        cursor.execute(sql, params)
-        conn.commit() 
+        cursor_sql.execute(sql_insert, params)
+        conn_sql_server.commit()
+        
+        # Lấy ID nhân viên vừa tạo
+        cursor_sql.execute("SELECT @@IDENTITY as EmployeeID")
+        employee_id = cursor_sql.fetchone()[0]
+        print(f"✅ Lưu vào SQL Server thành công! Employee ID: {employee_id}")
+
+        # ✅ THÊM LOG TỪ NHÁNH QHIEU
         try:
             log = AuditLog(username="Admin", action="THÊM MỚI", detail=f"Đã thêm nhân viên: {data.get('FullName')}")
             db.session.add(log)
             db.session.commit()
         except Exception as log_err:
             print("Lỗi lưu log:", log_err)
-        return jsonify({"message": "Thêm nhân viên thành công!"}), 201
+        
+        # 2️⃣ BƯỚC 2: Lưu vào MySQL (Payroll Database) - VẪN ĐANG COMMENT ĐỂ TEST
+        # ... (Phần code MySQL giữ nguyên trạng thái comment từ nhánh main) ...
+        
+        return jsonify({
+            "message": "✅ Thêm nhân viên thành công vào SQL Server!",
+            "employee_id": int(employee_id),
+            "full_name": data.get('FullName')
+        }), 201
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        if conn_sql_server:
+            conn_sql_server.rollback()
+        print(f"❌ Lỗi khi thêm nhân viên: {str(e)}")
+        return jsonify({"error": f"Lỗi: {str(e)}"}), 500
+        
     finally:
-        conn.close()
+        if conn_sql_server:
+            conn_sql_server.close()
+
 
 # UC.7: Cập nhật thông tin nhân viên
 @employee_bp.route('/api/employees/<int:emp_id>', methods=['PUT'])
-def update_employee(emp_id): # <-- ĐÃ XÓA current_user_role, CHỈ GIỮ emp_id
+#@token_required
+#@require_roles(['Admin', 'HR Manager'])
+def update_employee(emp_id):
     data = request.json
     try:
         conn = current_app.get_hr_db()
@@ -94,37 +137,50 @@ def update_employee(emp_id): # <-- ĐÃ XÓA current_user_role, CHỈ GIỮ emp_
         ))
         
         conn.commit()
+
+        # ✅ THÊM LOG TỪ NHÁNH QHIEU
         try:
             log = AuditLog(username="Admin", action="CẬP NHẬT", detail=f"Cập nhật thông tin nhân viên mã: {emp_id}")
             db.session.add(log)
             db.session.commit()
         except Exception as log_err:
             print("Lỗi lưu log:", log_err)
-        return jsonify({"message": "Cập nhật thành công!"}), 200
+
+        return jsonify({"message": "✅ Cập nhật nhân viên thành công!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
-# Xóa (Chuyển trạng thái nghỉ việc)
+
+# UC.8: Xóa nhân viên (chuyển trạng thái thành Đã nghỉ việc)
 @employee_bp.route('/api/employees/<int:emp_id>', methods=['DELETE'])
-# @token_required <-- ĐÃ COMMENT
-# @require_roles(['Admin']) <-- ĐÃ COMMENT
-def delete_employee(emp_id): # <-- ĐÃ XÓA current_user_role, CHỈ GIỮ emp_id
+#@token_required
+#@require_roles(['Admin'])
+def delete_employee(emp_id):
     try:
         conn = current_app.get_hr_db()
         cursor = conn.cursor()
+        
+        # ✅ Kiểm tra nhân viên tồn tại chưa (Từ nhánh main)
+        cursor.execute("SELECT COUNT(*) FROM Employees WHERE EmployeeID = ?", (emp_id,))
+        if cursor.fetchone()[0] == 0:
+            return jsonify({"error": "❌ Nhân viên không tồn tại!"}), 404
+        
+        # Xóa (chuyển trạng thái thành Đã nghỉ việc)
         cursor.execute("UPDATE Employees SET Status = N'Đã nghỉ việc', UpdatedAt = GETDATE() WHERE EmployeeID = ?", (emp_id,))
-        conn.commit()
+        conn.commit() 
+
+        # ✅ THÊM LOG TỪ NHÁNH QHIEU
         try:
             log = AuditLog(username="Admin", action="XÓA (NGHỈ VIỆC)", detail=f"Đã cho nhân viên mã {emp_id} nghỉ việc")
             db.session.add(log)
             db.session.commit()
         except Exception as log_err:
             print("Lỗi lưu log:", log_err)
-        return jsonify({"message": "Đã chuyển trạng thái nhân viên thành nghỉ việc"}), 200
+
+        return jsonify({"message": "✅ Xóa nhân viên thành công (chuyển trạng thái thành Đã nghỉ việc)!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
-

@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 import pyodbc
 import pymysql
 from .config import Config
+from flask import current_app
 
 # Khởi tạo extension SQLAlchemy cho database Auth (SQLite)
 db = SQLAlchemy()
@@ -21,24 +22,26 @@ def create_app(config_class=Config):
     db.init_app(app)
 
     with app.app_context():
+        # Import models để SQLAlchemy biết cần tạo bảng gì
+        from .models import User
         # Tự động tạo bảng cho database Auth nếu chưa có
         db.create_all()
 
     # 2. Định nghĩa kết nối SQL Server (HR DB - HUMAN_2025)
-    def get_hr_db_connection():
-        """Kết nối SQL Server. Chú ý: Nếu không dùng pass thì dùng Trusted_Connection."""
-        
-        # Lấy connection string từ config
+    def get_hr_db():
         try:
-            conn_str = app.config['HR_DB_CONNECTION_STRING']
-            if "PWD=;" in conn_str or "PWD= " in conn_str:
-             conn_str = conn_str.replace("UID=sa;", "").replace("PWD=;", "") + "TrustedConnection=yes;"
-        # Thử mở kết nối
-            conn = pyodbc.connect(conn_str)
+            # Lấy chuỗi kết nối từ file .env
+            connstr = os.environ.get('HR_DB_CONNECTION_STRING')
+            
+            # Nếu không tìm thấy trong .env thì báo lỗi rõ ràng
+            if not connstr:
+                raise ValueError("Chưa cấu hình HR_DB_CONNECTION_STRING trong file .env!")
+                
+            conn = pyodbc.connect(connstr)
             return conn
         except Exception as e:
-         print(f"[ERROR] Không thể kết nối SQL Server (HR DB): {e}")
-         raise
+            print(f"[ERROR] Không thể kết nối SQL Server (HR DB): {e}")
+            raise e
 
     # 3. Định nghĩa kết nối MySQL (Payroll DB)
     def get_payroll_db_connection():
@@ -50,28 +53,36 @@ def create_app(config_class=Config):
             cursorclass=pymysql.cursors.DictCursor
         )
 
-    # Gắn hàm kết nối vào app để các routes (của Hiếu và Vinh) dễ dàng gọi tới
-    app.get_hr_db = get_hr_db_connection
+    # Gắn hàm kết nối vào app để các routes dễ dàng gọi tới
+    app.get_hr_db = get_hr_db
     app.get_payroll_db = get_payroll_db_connection
 
     # API kiểm tra trạng thái hệ thống
     @app.route('/api/health')
     def health_check():
-     return jsonify({
-        "status": "online",
-        "message": "Dashboard API is running",
-        "hr_db_connected": test_db(app.get_hr_db),
-        "payroll_db_connected": test_db(app.get_payroll_db)
-    })
+        return jsonify({
+            "status": "online",
+            "message": "Dashboard API is running",
+            "hr_db_connected": test_db(app.get_hr_db),
+            "payroll_db_connected": test_db(app.get_payroll_db)
+        })
 
     def test_db(get_connection_func):
-     try:
-        conn = get_connection_func()
-        conn.close()
-        return True
-     except:
-        return False
+        try:
+            conn = get_connection_func()
+            conn.close()
+            return True
+        except:
+            return False
 
+
+    # ==========================================
+    # ĐĂNG KÝ CÁC BLUEPRINT (Gộp từ cả 2 nhánh)
+    # ==========================================
+    
+    # Phần xác thực đăng nhập / đăng ký
+    from .routes.auth_routes import auth_bp
+    app.register_blueprint(auth_bp)
 
     # Phần báo cáo của Phan Quang Hiếu (UC.11, 12, 13)
     from .routes.report_routes import report_bp
@@ -81,8 +92,16 @@ def create_app(config_class=Config):
     from .routes.employee_routes import employee_bp
     app.register_blueprint(employee_bp)
     
-    # Phần quản lý thông báo và lương (UC.14, UC.15)
+    # Phần quản lý thông báo và lương (UC.14, UC.15) -> Từ nhánh qhieu
     from .routes.notification_routes import notification_bp
     app.register_blueprint(notification_bp)
+
+    # Phần quản lý phòng ban -> Từ nhánh main
+    from .routes.department_routes import department_bp
+    app.register_blueprint(department_bp)
+
+    # Phần tổng hợp dữ liệu cho Dashboard -> Từ nhánh main
+    from .routes.dashboard_routes import dashboard_bp
+    app.register_blueprint(dashboard_bp)
 
     return app

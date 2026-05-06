@@ -11,6 +11,7 @@ import Reports from './pages/Reports';
 import HRData from './pages/HRData';
 import Events from './pages/Events';
 import Payroll from './pages/Payroll';
+import Department from './pages/Department';
 
 function App() {
   // Giả lập trạng thái đăng nhập
@@ -41,6 +42,9 @@ function App() {
           
           {/* TRANG BÁO CÁO: UC.11, 12, 13 của Hiếu */}
           <Route path="reports" element={<Reports />} /> 
+
+          {/* TRANG PHÒNG BAN */}
+          <Route path="departments" element={<Department />} />
           
           {/* TRANG CÀI ĐẶT */}
           <Route path="settings" element={<div className="p-4 text-2xl font-bold text-gray-700">Settings Module (Pending)</div>} />

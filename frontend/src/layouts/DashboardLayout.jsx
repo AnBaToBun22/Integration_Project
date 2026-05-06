@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-// Đã thêm icon Home và Settings để đủ bộ menu
 import { Home, Users, DollarSign, BarChart2, Settings, Bell, LogOut, Menu, Calendar } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 
@@ -43,7 +42,6 @@ const DashboardLayout = () => {
         </div>
 
         <nav className="flex-1 py-4 px-3 space-y-2">
-          {/* Sửa lại Link chuẩn theo App.jsx */}
           <Link to="/" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/')}`}>
             <Home size={20} />
             <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Dashboard</span>
@@ -54,9 +52,16 @@ const DashboardLayout = () => {
             <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>HR Data</span>
           </Link>
 
+          {/* Menu Sự kiện (Từ nhánh qhieu) */}
           <Link to="/events" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/events')}`}>
             <Calendar size={20} />
             <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Sự kiện</span>
+          </Link>
+
+          {/* Menu Phòng ban (Từ nhánh main) */}
+          <Link to="/departments" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/departments')}`}>
+            <Users size={20} />
+            <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Phòng ban</span>
           </Link>
 
           <Link to="/payroll" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/payroll')}`}>
@@ -64,7 +69,6 @@ const DashboardLayout = () => {
             <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Payroll</span>
           </Link>
 
-          {/* ĐÂY LÀ PHẦN CỦA QUANG HIẾU: Tab Báo cáo */}
           <Link to="/reports" className={`flex items-center px-4 py-3 rounded-lg transition ${isActive('/reports')}`}>
             <BarChart2 size={20} />
             <span className={`ml-4 ${!isSidebarOpen && 'hidden'}`}>Báo cáo</span>
@@ -76,7 +80,7 @@ const DashboardLayout = () => {
           </Link>
         </nav>
 
-        {/* Nút Logout ở cuối Sidebar cho giống ảnh thiết kế */}
+        {/* Nút Logout ở cuối Sidebar */}
         <div className="p-4 border-t border-blue-800">
           <button 
             onClick={handleLogout} 
@@ -119,7 +123,7 @@ const DashboardLayout = () => {
           </div>
         </header>
 
-        {/* PAGE CONTENT (Outlet sẽ tự động nhúng Component Reports của bạn vào đây) */}
+        {/* PAGE CONTENT */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
           <Outlet /> 
         </main>
