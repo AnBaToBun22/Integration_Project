@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request, current_app
 from ..auth_middleware import token_required, require_roles
+from ..models import AuditLog
+from .. import db
 import pymysql
 
 notification_bp = Blueprint('notification_bp', __name__)
@@ -30,11 +32,11 @@ def create_events_table_if_not_exists(conn):
 
 @notification_bp.route('/api/events', methods=['GET'])
 @token_required
-def get_events(current_user_role):
+def get_events(current_user_role, **kwargs):
     """Lấy danh sách sự kiện"""
     try:
         conn = current_app.get_payroll_db()
-        create_events_table_if_not_exists(conn) # Đảm bảo bảng đã tồn tại
+        create_events_table_if_not_exists(conn)
         cursor = conn.cursor()
         
         cursor.execute("SELECT * FROM events ORDER BY EventDate DESC")
@@ -48,12 +50,6 @@ def get_events(current_user_role):
                 event['CreatedAt'] = event['CreatedAt'].strftime('%Y-%m-%d %H:%M:%S')
                 
         return jsonify(events), 200
-    except (pymysql.err.ProgrammingError, pymysql.err.OperationalError) as e:
-        return jsonify([{
-            "EventID": 1, "Title": "Team Building 2026 (Dữ liệu tạm)", 
-            "EventDate": "2026-06-15 10:00", "Location": "Đà Nẵng", 
-            "TargetAudience": "all", "Content": "Vui lòng kiểm tra lại password MySQL trong file .env nhé! Hiện tại chưa kết nối được MySQL nên hệ thống hiển thị dữ liệu tạm."
-        }]), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -63,8 +59,9 @@ def get_events(current_user_role):
 @notification_bp.route('/api/events', methods=['POST'])
 @token_required
 @require_roles(['Admin', 'HR Manager'])
-def create_event(current_user_role):
+def create_event(current_user_role, **kwargs):
     """Tạo sự kiện mới"""
+    current_username = kwargs.get('current_username', 'Unknown')
     data = request.json
     
     if not data or not data.get('title') or not data.get('date') or not data.get('content'):
@@ -88,9 +85,15 @@ def create_event(current_user_role):
         ))
         conn.commit()
         
+        # AuditLog
+        try:
+            log = AuditLog(username=current_username, action="THÊM MỚI", detail=f"Tạo sự kiện: {data.get('title')}")
+            db.session.add(log)
+            db.session.commit()
+        except Exception as log_err:
+            print("Lỗi lưu log:", log_err)
+        
         return jsonify({"message": "Tạo thông báo sự kiện thành công!"}), 201
-    except (pymysql.err.ProgrammingError, pymysql.err.OperationalError) as e:
-        return jsonify({"message": "Tạo thông báo thành công! (Ghi chú: Đang lưu vào bộ nhớ tạm vì chưa kết nối được MySQL)"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -98,14 +101,14 @@ def create_event(current_user_role):
             conn.close()
 
 # ==========================================
-# USE CASE 15: THÔNG BÁO LƯƠNG
+# USE CASE 15: THÔNG BÁO LƯƠNG (ĐÃ FIX SCHEMA)
 # ==========================================
 
 @notification_bp.route('/api/payroll/notify', methods=['POST'])
 @token_required
-@require_roles(['Admin', 'HR Manager', 'Payroll Manager'])
-def notify_payroll(current_user_role):
-    """Gửi thông báo bảng lương"""
+@require_roles(['Admin', 'HR Manager'])
+def notify_payroll(current_user_role, **kwargs):
+    """Gửi thông báo bảng lương — dùng đúng schema bảng salaries"""
     data = request.json
     month = data.get('month')
     year = data.get('year')
@@ -114,26 +117,23 @@ def notify_payroll(current_user_role):
         conn = current_app.get_payroll_db()
         cursor = conn.cursor()
         
-        # Giả định có bảng salaries lưu trạng thái lương
-        # Chỉnh sửa lại tên bảng nếu database thực tế của bạn có tên khác (ví dụ: payroll_records)
+        # Schema đúng: bảng salaries có cột SalaryMonth (date)
         cursor.execute("""
-            SELECT status FROM salaries 
-            WHERE month = %s AND year = %s LIMIT 1
+            SELECT COUNT(*) as cnt FROM salaries 
+            WHERE MONTH(SalaryMonth) = %s AND YEAR(SalaryMonth) = %s
         """, (month, year))
         
         result = cursor.fetchone()
+        record_count = result['cnt'] if result else 0
         
-        # Kịch bản lỗi (Exception Flow 1): Bảng lương chưa chốt
-        if not result or result['status'] != 'Approved':
-            return jsonify({"message": "Bảng lương tháng này chưa được phê duyệt. Không thể gửi thông báo."}), 400
+        if record_count == 0:
+            return jsonify({
+                "message": f"Không tìm thấy dữ liệu lương tháng {month}/{year}. Vui lòng kiểm tra lại."
+            }), 400
             
-        # Nếu đã duyệt, giả lập gửi email/thông báo ở đây
-        # Log vào database hoặc gửi mail (tích hợp SMTP ở đây sau này)
-        
-        return jsonify({"message": f"Thông báo lương tháng {month}/{year} đã được gửi thành công!"}), 200
-    except (pymysql.err.ProgrammingError, pymysql.err.OperationalError) as e:
-        # Nếu MySQL lỗi kết nối hoặc chưa có bảng
-        return jsonify({"message": f"Thông báo lương tháng {month}/{year} đã được gửi thành công! (Chạy bằng dữ liệu giả lập do lỗi MySQL)"}), 200
+        return jsonify({
+            "message": f"Thông báo lương tháng {month}/{year} đã được gửi thành công! ({record_count} bản ghi)"
+        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -142,103 +142,163 @@ def notify_payroll(current_user_role):
 
 @notification_bp.route('/api/payroll/my_payroll', methods=['GET'])
 @token_required
-def get_my_payroll(current_user_role):
-    """Lấy chi tiết bảng lương của người dùng đang đăng nhập"""
-    month = request.args.get('month', 12)
-    year = request.args.get('year', 2025)
-    
-    # Thông thường user_id lấy từ token (jwt). Ở đây giả định lấy từ header hoặc param 
-    # Nếu auth_middleware của bạn hỗ trợ lấy ID, hãy đưa vào đây. Tạm thời fix cứng user_id = 1 để test.
-    employee_id = request.args.get('employee_id', 1) 
+def get_my_payroll(current_user_role, **kwargs):
+    """Lấy chi tiết bảng lương — dùng đúng schema bảng salaries"""
+    month = request.args.get('month', 9, type=int)
+    year = request.args.get('year', 2024, type=int)
+    employee_id = request.args.get('employee_id', 1, type=int)
     
     try:
         conn = current_app.get_payroll_db()
         cursor = conn.cursor()
         
+        # Schema đúng: BaseSalary, Bonus, Deductions, NetSalary, SalaryMonth + Attendance
         cursor.execute("""
-            SELECT basic_salary, allowance, deduction, tax, net_salary, status 
-            FROM salaries 
-            WHERE employee_id = %s AND month = %s AND year = %s
+            SELECT s.BaseSalary, s.Bonus, s.Deductions, s.NetSalary, s.SalaryMonth,
+                   ep.FullName,
+                   COALESCE(a.WorkDays, 0) as WorkDays, 
+                   COALESCE(a.AbsentDays, 0) as AbsentDays, 
+                   COALESCE(a.LeaveDays, 0) as LeaveDays
+            FROM salaries s
+            JOIN employees_payroll ep ON s.EmployeeID = ep.EmployeeID
+            LEFT JOIN attendance a ON s.EmployeeID = a.EmployeeID 
+                AND MONTH(s.SalaryMonth) = MONTH(a.AttendanceMonth) 
+                AND YEAR(s.SalaryMonth) = YEAR(a.AttendanceMonth)
+            WHERE s.EmployeeID = %s AND MONTH(s.SalaryMonth) = %s AND YEAR(s.SalaryMonth) = %s
         """, (employee_id, month, year))
         
         payroll_data = cursor.fetchone()
         
         if not payroll_data:
-            return jsonify({"message": "Không tìm thấy dữ liệu lương của bạn cho kỳ này."}), 404
+            return jsonify({"message": "Không tìm thấy dữ liệu lương cho kỳ này."}), 404
+        
+        result = {
+            "fullName": payroll_data['FullName'],
+            "baseSalary": float(payroll_data['BaseSalary']),
+            "bonus": float(payroll_data['Bonus']),
+            "deductions": float(payroll_data['Deductions']),
+            "netSalary": float(payroll_data['NetSalary']),
+            "salaryMonth": payroll_data['SalaryMonth'].strftime('%m/%Y') if payroll_data['SalaryMonth'] else f"{month}/{year}",
+            "workDays": int(payroll_data['WorkDays']),
+            "absentDays": int(payroll_data['AbsentDays']),
+            "leaveDays": int(payroll_data['LeaveDays'])
+        }
             
-        return jsonify(payroll_data), 200
-    except (pymysql.err.ProgrammingError, pymysql.err.OperationalError) as e:
-        # Nếu MySQL lỗi kết nối hoặc chưa có bảng
-        return jsonify({
-            "basicSalary": 15000000, 
-            "allowance": 2000000, 
-            "deduction": 500000, 
-            "tax": 1500000, 
-            "netSalary": 15000000,
-            "status": "Approved",
-            "mock": True # Trả về mock data nếu DB chưa sẵn sàng
-        }), 200
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
-# Lấy danh sách cảnh báo thực tế từ cả 2 Database
+
+# ==========================================
+# ALERTS: Cảnh báo thực tế từ cả 2 Database
+# ==========================================
 @notification_bp.route('/api/alerts', methods=['GET'])
 @token_required
-def get_real_alerts(current_user_role):
+def get_real_alerts(current_user_role, **kwargs):
     alerts = []
     alert_id = 1
     
-    # 1. Quét SQL Server: Cảnh báo sinh nhật (Màu xanh - info)
+    # 1. SQL Server: Cảnh báo sinh nhật (info - xanh)
     try:
         hr_conn = current_app.get_hr_db()
         cursor = hr_conn.cursor()
-        # Tìm nhân viên sinh trong tháng này
+        
         cursor.execute("""
             SELECT FullName, DateOfBirth 
             FROM Employees 
-            WHERE MONTH(DateOfBirth) = MONTH(GETDATE())
+            WHERE MONTH(DateOfBirth) = MONTH(GETDATE()) AND Status = N'Đang làm việc'
         """)
         birthdays = cursor.fetchall()
         for emp in birthdays:
             alerts.append({
                 "id": alert_id,
                 "type": "info",
-                "title": "Sắp tới sinh nhật",
+                "title": "🎂 Sinh nhật trong tháng",
                 "message": f"Tháng này là sinh nhật của {emp[0]} (SN: {emp[1].strftime('%d/%m/%Y')}). Hãy chuẩn bị quà nhé!",
                 "time": "Mới đây",
                 "read": False
             })
             alert_id += 1
+        
+        # 2. SQL Server: Cảnh báo kỷ niệm ngày vào làm (info - xanh)
+        cursor.execute("""
+            SELECT FullName, HireDate, DATEDIFF(YEAR, HireDate, GETDATE()) as YearsWorked
+            FROM Employees 
+            WHERE MONTH(HireDate) = MONTH(GETDATE()) 
+              AND DATEDIFF(YEAR, HireDate, GETDATE()) > 0
+              AND Status = N'Đang làm việc'
+        """)
+        anniversaries = cursor.fetchall()
+        for emp in anniversaries:
+            alerts.append({
+                "id": alert_id,
+                "type": "info",
+                "title": "🏆 Kỷ niệm ngày vào làm",
+                "message": f"{emp[0]} kỷ niệm {emp[2]} năm làm việc tại công ty (Ngày vào: {emp[1].strftime('%d/%m/%Y')}).",
+                "time": "Mới đây",
+                "read": False
+            })
+            alert_id += 1
+        
         hr_conn.close()
     except Exception as e:
         print(f"[ALERTS] Lỗi SQL Server: {e}")
 
-    # 2. Quét MySQL: Cảnh báo vắng mặt/nghỉ phép (Màu vàng - warning)
+    # 3. MySQL: Cảnh báo vắng mặt/nghỉ phép quá mức (warning - vàng)
     try:
         payroll_conn = current_app.get_payroll_db()
         with payroll_conn.cursor() as cursor:
-            # Tìm nhân viên vắng hoặc nghỉ phép > 1 ngày
             cursor.execute("""
-                SELECT EmployeeID, AbsentDays, LeaveDays, AttendanceMonth
-                FROM attendance
-                WHERE AbsentDays > 1 OR LeaveDays > 1
+                SELECT a.EmployeeID, ep.FullName, a.AbsentDays, a.LeaveDays, a.AttendanceMonth
+                FROM attendance a
+                JOIN employees_payroll ep ON a.EmployeeID = ep.EmployeeID
+                WHERE a.AbsentDays > 1 OR a.LeaveDays > 3
             """)
             absences = cursor.fetchall()
             for record in absences:
+                month_str = record['AttendanceMonth'].strftime('%m/%Y') if record.get('AttendanceMonth') else 'N/A'
                 alerts.append({
                     "id": alert_id,
                     "type": "warning",
-                    "title": "Cảnh báo nghỉ phép/vắng mặt",
-                    "message": f"Nhân viên ID {record['EmployeeID']} đã vắng {record['AbsentDays']} ngày và nghỉ phép {record['LeaveDays']} ngày trong tháng {record['AttendanceMonth']}.",
+                    "title": "⚠️ Cảnh báo nghỉ phép/vắng mặt",
+                    "message": f"{record['FullName']} (ID: {record['EmployeeID']}) đã vắng {record['AbsentDays']} ngày và nghỉ phép {record['LeaveDays']} ngày trong tháng {month_str}.",
                     "time": "1 giờ trước",
                     "read": False
                 })
                 alert_id += 1
+            
+            # 4. MySQL: Cảnh báo sai lệch lương bất thường (alert - đỏ)
+            cursor.execute("""
+                SELECT s1.EmployeeID, ep.FullName, 
+                       s1.NetSalary as CurrentSalary, s2.NetSalary as PrevSalary,
+                       s1.SalaryMonth as CurrentMonth
+                FROM salaries s1
+                JOIN salaries s2 ON s1.EmployeeID = s2.EmployeeID 
+                    AND s2.SalaryMonth = DATE_SUB(s1.SalaryMonth, INTERVAL 1 MONTH)
+                JOIN employees_payroll ep ON s1.EmployeeID = ep.EmployeeID
+                WHERE ABS(s1.NetSalary - s2.NetSalary) > s2.NetSalary * 0.3
+                ORDER BY s1.SalaryMonth DESC
+                LIMIT 10
+            """)
+            anomalies = cursor.fetchall()
+            for record in anomalies:
+                diff = float(record['CurrentSalary']) - float(record['PrevSalary'])
+                direction = "tăng" if diff > 0 else "giảm"
+                alerts.append({
+                    "id": alert_id,
+                    "type": "alert",
+                    "title": "🚨 Sai lệch lương bất thường",
+                    "message": f"{record['FullName']} có lương {direction} bất thường: {abs(diff):,.0f}₫ so với tháng trước.",
+                    "time": "2 giờ trước",
+                    "read": False
+                })
+                alert_id += 1
+        
         payroll_conn.close()
     except Exception as e:
         print(f"[ALERTS] Lỗi MySQL: {e}")
 
     return jsonify(alerts), 200
-    finally:
-        if 'conn' in locals():
-            conn.close()

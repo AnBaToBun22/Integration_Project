@@ -1,24 +1,27 @@
 from flask import Blueprint, jsonify, current_app
-from decimal import Decimal
+from ..auth_middleware import token_required
 from ..models import AuditLog
+
 dashboard_bp = Blueprint('dashboard_bp', __name__)
 
 @dashboard_bp.route('/api/logs', methods=['GET'])
-def get_audit_logs():
+@token_required
+def get_audit_logs(current_user_role, **kwargs):
     try:
-        # Lấy danh sách log, sắp xếp mới nhất lên đầu
         logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(50).all()
         return jsonify([log.to_dict() for log in logs]), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
 @dashboard_bp.route('/api/dashboard/stats', methods=['GET'])
-def get_dashboard_stats():
+@token_required
+def get_dashboard_stats(current_user_role, **kwargs):
     """API tổng hợp dữ liệu cho trang Dashboard"""
     stats = {
         "hr_total_employees": 0,
         "hr_active_employees": 0,
         "hr_departments": 0,
+        "hr_positions": 0,
         "payroll_total_salary": 0,
         "payroll_employee_count": 0,
         "payroll_salary_records": 0,
@@ -44,6 +47,12 @@ def get_dashboard_stats():
             cursor.execute("SELECT COUNT(*) FROM Departments")
             row = cursor.fetchone()
             stats["hr_departments"] = row[0] if row else 0
+            
+            cursor.execute("SELECT COUNT(*) FROM Positions")
+            row = cursor.fetchone()
+            stats["hr_positions"] = row[0] if row else 0
+            
+
         except Exception as q_e:
             print(f"[Dashboard] HR DB Query error: {q_e}")
         finally:

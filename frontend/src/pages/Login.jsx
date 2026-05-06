@@ -13,7 +13,7 @@ const Login = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [role, setRole] = useState("Employee");
+    const [role] = useState("Employee");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
@@ -49,7 +49,7 @@ const Login = () => {
         } catch (err) {
             setError(
                 err.response?.data?.error ||
-                    "Đăng nhập thất bại. Vui lòng thử lại!",
+                "Đăng nhập thất bại. Vui lòng thử lại!",
             );
         } finally {
             setLoading(false);
@@ -153,21 +153,19 @@ const Login = () => {
                         <div className="flex mb-6 bg-gray-100 rounded-xl p-1 relative z-10">
                             <button
                                 onClick={() => toggleMode()}
-                                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 transform active:scale-95 ${
-                                    !isRegisterMode
+                                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 transform active:scale-95 ${!isRegisterMode
                                         ? "bg-white text-blue-600 shadow-md scale-100"
                                         : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-                                }`}
+                                    }`}
                             >
                                 Đăng Nhập
                             </button>
                             <button
                                 onClick={() => toggleMode()}
-                                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 transform active:scale-95 ${
-                                    isRegisterMode
+                                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 transform active:scale-95 ${isRegisterMode
                                         ? "bg-white text-blue-600 shadow-md scale-100"
                                         : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-                                }`}
+                                    }`}
                             >
                                 Đăng Ký
                             </button>
@@ -426,28 +424,6 @@ const Login = () => {
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Vai trò (Role)
-                                        </label>
-                                        <select
-                                            value={role}
-                                            onChange={(e) =>
-                                                setRole(e.target.value)
-                                            }
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-gray-50 focus:bg-white"
-                                        >
-                                            <option value="Employee">
-                                                Employee (Nhân viên)
-                                            </option>
-                                            <option value="HR Manager">
-                                                HR Manager (Quản lý nhân sự)
-                                            </option>
-                                            <option value="Admin">
-                                                Admin (Quản trị viên)
-                                            </option>
-                                        </select>
-                                    </div>
 
                                     <button
                                         type="submit"

@@ -1,11 +1,10 @@
 import os
-from flask import Flask, jsonify  # Đã sửa: bỏ import app ở đây
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import pyodbc
 import pymysql
 from .config import Config
-from flask import current_app
 
 # Khởi tạo extension SQLAlchemy cho database Auth (SQLite)
 db = SQLAlchemy()
@@ -15,28 +14,21 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     # Bật CORS để React (Port 5173) có thể gọi API Python (Port 5000)
-    # Đây là chìa khóa để giải quyết lỗi "Dữ liệu bị chặn"
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     # 1. Khởi tạo Auth DB (SQLite)
     db.init_app(app)
 
     with app.app_context():
-        # Import models để SQLAlchemy biết cần tạo bảng gì
-        from .models import User
-        # Tự động tạo bảng cho database Auth nếu chưa có
+        from .models import User, AuditLog
         db.create_all()
 
     # 2. Định nghĩa kết nối SQL Server (HR DB - HUMAN_2025)
     def get_hr_db():
         try:
-            # Lấy chuỗi kết nối từ file .env
             connstr = os.environ.get('HR_DB_CONNECTION_STRING')
-            
-            # Nếu không tìm thấy trong .env thì báo lỗi rõ ràng
             if not connstr:
                 raise ValueError("Chưa cấu hình HR_DB_CONNECTION_STRING trong file .env!")
-                
             conn = pyodbc.connect(connstr)
             return conn
         except Exception as e:
@@ -77,30 +69,34 @@ def create_app(config_class=Config):
 
 
     # ==========================================
-    # ĐĂNG KÝ CÁC BLUEPRINT (Gộp từ cả 2 nhánh)
+    # ĐĂNG KÝ CÁC BLUEPRINT
     # ==========================================
     
     # Phần xác thực đăng nhập / đăng ký
     from .routes.auth_routes import auth_bp
     app.register_blueprint(auth_bp)
 
-    # Phần báo cáo của Phan Quang Hiếu (UC.11, 12, 13)
+    # Phần báo cáo
     from .routes.report_routes import report_bp
     app.register_blueprint(report_bp)
 
-    # Phần quản lý nhân viên hỗ trợ Vinh (UC.5, 6, 7)
+    # Phần quản lý nhân viên
     from .routes.employee_routes import employee_bp
     app.register_blueprint(employee_bp)
     
-    # Phần quản lý thông báo và lương (UC.14, UC.15) -> Từ nhánh qhieu
+    # Phần quản lý thông báo và lương
     from .routes.notification_routes import notification_bp
     app.register_blueprint(notification_bp)
 
-    # Phần quản lý phòng ban -> Từ nhánh main
+    # Phần quản lý phòng ban
     from .routes.department_routes import department_bp
     app.register_blueprint(department_bp)
 
-    # Phần tổng hợp dữ liệu cho Dashboard -> Từ nhánh main
+    # Phần quản lý chức vụ (MỚI)
+    from .routes.position_routes import position_bp
+    app.register_blueprint(position_bp)
+
+    # Phần tổng hợp dữ liệu cho Dashboard
     from .routes.dashboard_routes import dashboard_bp
     app.register_blueprint(dashboard_bp)
 

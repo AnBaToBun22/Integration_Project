@@ -79,13 +79,13 @@ const Events = () => {
           <Bell className="mr-2 text-blue-600" /> Quản lý thông báo sự kiện
         </h1>
         <div className="flex space-x-2">
-          <button 
+          <button
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'create' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}
             onClick={() => setActiveTab('create')}
           >
             Tạo thông báo mới
           </button>
-          <button 
+          <button
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'list' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-600 border hover:bg-gray-50'}`}
             onClick={() => setActiveTab('list')}
           >
@@ -147,7 +147,7 @@ const Events = () => {
                 </div>
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nội dung chi tiết *</label>
               <textarea name="content" value={formData.content} onChange={handleInputChange} rows={5} className="w-full border border-gray-300 rounded-lg p-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Nhập nội dung thông báo..."></textarea>
@@ -207,14 +207,14 @@ const Events = () => {
 
       {activeTab === 'list' && selectedEvent && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 relative">
-          <button 
+          <button
             onClick={() => setSelectedEvent(null)}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold text-xl"
           >
             &times;
           </button>
           <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-4 border-b">{selectedEvent.title}</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="flex items-center text-gray-700 bg-gray-50 p-3 rounded-lg">
               <div className="bg-blue-100 p-2 rounded-full mr-3 text-blue-600">
@@ -244,16 +244,16 @@ const Events = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="prose max-w-none text-gray-700">
             <h3 className="text-lg font-semibold mb-2">Nội dung chi tiết</h3>
             <div className="bg-gray-50 p-5 rounded-lg border border-gray-100 whitespace-pre-wrap">
               {selectedEvent.content}
             </div>
           </div>
-          
+
           <div className="mt-8 flex justify-center">
-            <button 
+            <button
               onClick={() => setSelectedEvent(null)}
               className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium transition-colors"
             >

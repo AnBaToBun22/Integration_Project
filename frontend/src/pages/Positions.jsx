@@ -1,102 +1,85 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Edit2, Plus, Search, X } from "lucide-react";
-import { getDepartments, createDepartment, updateDepartment, deleteDepartment } from "../services/api";
+import { Trash2, Edit2, Plus, Briefcase, Search, X } from "lucide-react";
+import { getPositions, createPosition, updatePosition, deletePosition } from "../services/api";
 
-const Department = () => {
-  const [departments, setDepartments] = useState([]);
+const Positions = () => {
+  const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const [formData, setFormData] = useState({
-    name: "",
-  });
-
+  const [formData, setFormData] = useState({ name: "" });
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Lấy danh sách phòng ban từ API khi component load
   useEffect(() => {
-    fetchDepartments();
+    fetchPositions();
   }, []);
 
-  const fetchDepartments = async () => {
+  const fetchPositions = async () => {
     try {
       setLoading(true);
-      const response = await getDepartments();
-
+      const response = await getPositions();
       if (response.data.success) {
-        setDepartments(response.data.data);
+        setPositions(response.data.data);
         setError(null);
       } else {
         setError(response.data.message);
       }
     } catch (err) {
       setError(`Lỗi: ${err.message}`);
-      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleAddDepartment = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert("Vui lòng nhập tên phòng ban");
+      alert("Vui lòng nhập tên chức vụ");
       return;
     }
 
     try {
       let response;
-      
       if (editingId) {
-        // Cập nhật phòng ban
-        response = await updateDepartment(editingId, formData);
+        response = await updatePosition(editingId, formData);
       } else {
-        // Thêm phòng ban mới
-        response = await createDepartment(formData);
+        response = await createPosition(formData);
       }
 
       if (response.data.success) {
         alert(response.data.message);
-        fetchDepartments();
+        fetchPositions();
         setFormData({ name: "" });
         setEditingId(null);
       } else {
         alert(response.data.message);
       }
     } catch (err) {
-      alert(`Lỗi: ${err.message}`);
-      console.error("Error:", err);
+      alert(`Lỗi: ${err.response?.data?.message || err.message}`);
     }
   };
 
-  const handleEdit = (dept) => {
-    setFormData({ name: dept.name });
-    setEditingId(dept.id);
+  const handleEdit = (pos) => {
+    setFormData({ name: pos.name });
+    setEditingId(pos.id);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Bạn chắc chắn muốn xóa phòng ban này?")) {
+    if (window.confirm("Bạn chắc chắn muốn xóa chức vụ này?")) {
       try {
-        const response = await deleteDepartment(id);
-
+        const response = await deletePosition(id);
         if (response.data.success) {
           alert(response.data.message);
-          fetchDepartments();
+          fetchPositions();
         } else {
           alert(response.data.message);
         }
       } catch (err) {
-        alert(`Lỗi: ${err.message}`);
-        console.error("Error:", err);
+        alert(`Lỗi: ${err.response?.data?.message || err.message}`);
       }
     }
   };
@@ -106,8 +89,8 @@ const Department = () => {
     setEditingId(null);
   };
 
-  const filteredDepartments = departments.filter((dept) =>
-    dept.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPositions = positions.filter((pos) =>
+    pos.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -115,15 +98,15 @@ const Department = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Quản lý Phòng ban
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+            <Briefcase className="text-purple-600" size={28} />
+            Quản lý Chức vụ
           </h1>
           <p className="text-gray-600">
-            Quản lý toàn bộ các phòng ban trong tổ chức
+            Quản lý toàn bộ các chức vụ trong tổ chức — đồng bộ tự động với hệ thống Payroll
           </p>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
             {error}
@@ -131,32 +114,32 @@ const Department = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Form Thêm/Sửa Phòng ban */}
+          {/* Form */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow p-6 sticky top-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                {editingId ? "Sửa Phòng ban" : "Thêm Phòng ban"}
+                {editingId ? "Sửa Chức vụ" : "Thêm Chức vụ"}
               </h2>
 
-              <form onSubmit={handleAddDepartment} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tên Phòng ban *
+                    Tên Chức vụ *
                   </label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    placeholder="Nhập tên phòng ban"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    placeholder="Nhập tên chức vụ"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                   />
                 </div>
 
                 <div className="flex gap-2 pt-2">
                   <button
                     type="submit"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition flex items-center justify-center gap-2"
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 rounded-lg transition flex items-center justify-center gap-2"
                   >
                     <Plus size={18} />
                     {editingId ? "Cập nhật" : "Thêm mới"}
@@ -175,22 +158,21 @@ const Department = () => {
             </div>
           </div>
 
-          {/* Danh sách Phòng ban */}
+          {/* Table */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              {/* Table Header & Search */}
               <div className="bg-gray-100 px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Danh sách Phòng ban {loading ? "..." : `(${departments.length})`}
+                  Danh sách Chức vụ {loading ? "..." : `(${positions.length})`}
                 </h3>
                 <div className="relative w-full sm:w-64">
                   <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Tìm kiếm phòng ban..."
+                    placeholder="Tìm kiếm chức vụ..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                    className="w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm"
                   />
                   {searchTerm && (
                     <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -200,54 +182,39 @@ const Department = () => {
                 </div>
               </div>
 
-              {/* Loading State */}
               {loading && (
                 <div className="px-6 py-8 text-center text-gray-500">
                   Đang tải dữ liệu...
                 </div>
               )}
 
-              {/* Table Body */}
               {!loading && (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                          STT
-                        </th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                          Tên Phòng ban
-                        </th>
-                        <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">
-                          Hành động
-                        </th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">STT</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Tên Chức vụ</th>
+                        <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Hành động</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredDepartments.length > 0 ? (
-                        filteredDepartments.map((dept, index) => (
-                          <tr
-                            key={dept.id}
-                            className="border-b border-gray-200 hover:bg-gray-50 transition"
-                          >
-                            <td className="px-6 py-4 text-sm text-gray-700">
-                              {index + 1}
-                            </td>
-                            <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                              {dept.name}
-                            </td>
+                      {filteredPositions.length > 0 ? (
+                        filteredPositions.map((pos, index) => (
+                          <tr key={pos.id} className="border-b border-gray-200 hover:bg-gray-50 transition">
+                            <td className="px-6 py-4 text-sm text-gray-700">{index + 1}</td>
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{pos.name}</td>
                             <td className="px-6 py-4 text-center">
                               <div className="flex items-center justify-center gap-2">
                                 <button
-                                  onClick={() => handleEdit(dept)}
-                                  className="text-blue-600 hover:text-blue-800 p-2 rounded hover:bg-blue-50 transition"
+                                  onClick={() => handleEdit(pos)}
+                                  className="text-purple-600 hover:text-purple-800 p-2 rounded hover:bg-purple-50 transition"
                                   title="Sửa"
                                 >
                                   <Edit2 size={18} />
                                 </button>
                                 <button
-                                  onClick={() => handleDelete(dept.id)}
+                                  onClick={() => handleDelete(pos.id)}
                                   className="text-red-600 hover:text-red-800 p-2 rounded hover:bg-red-50 transition"
                                   title="Xóa"
                                 >
@@ -260,7 +227,7 @@ const Department = () => {
                       ) : (
                         <tr>
                           <td colSpan="3" className="px-6 py-8 text-center text-gray-500">
-                            Chưa có phòng ban nào.
+                            Chưa có chức vụ nào.
                           </td>
                         </tr>
                       )}
@@ -276,4 +243,4 @@ const Department = () => {
   );
 };
 
-export default Department;
+export default Positions;
