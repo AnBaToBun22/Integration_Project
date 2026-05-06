@@ -1,53 +1,69 @@
+// frontend/src/services/api.js
 import axios from 'axios';
 
+const API_BASE_URL = 'http://127.0.0.1:5000/api';
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api', // Flask backend URL
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Interceptor for attaching JWT token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// Interceptor thêm token vào header
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-// Employee API functions
-export const getEmployees = () => {
-  return api.get('/employees');
-};
+// ========== HR APIs (Employees) ==========
+export const getEmployees = () => api.get('/employees');
+export const getEmployeeById = (id) => api.get(`/employees/${id}`);
+export const createEmployee = (data) => api.post('/employees', data);
+export const updateEmployee = (id, data) => api.put(`/employees/${id}`, data);
+export const deleteEmployee = (id) => api.delete(`/employees/${id}`);
 
-export const createEmployee = (employeeData) => {
-  return api.post('/employees', employeeData);
-};
+// ========== Department APIs ==========
+export const getDepartments = () => api.get('/departments');
+export const getDepartmentById = (id) => api.get(`/departments/${id}`);
+export const createDepartment = (data) => api.post('/departments', data);
+export const updateDepartment = (id, data) => api.put(`/departments/${id}`, data);
+export const deleteDepartment = (id) => api.delete(`/departments/${id}`);
 
-export const updateEmployee = (employeeId, employeeData) => {
-  return api.put(`/employees/${employeeId}`, employeeData);
+// ========== Payroll APIs ==========
+export const getPayrollList = (month = null, year = null) => {
+  const params = [];
+  if (month) params.push(`month=${month}`);
+  if (year) params.push(`year=${year}`);
+  const qs = params.length ? `?${params.join('&')}` : '';
+  return api.get(`/reports/payroll_list${qs}`);
 };
+export const updatePayroll = (salaryId, data) => api.put(`/reports/payroll/${salaryId}`, data);
 
-export const deleteEmployee = (employeeId) => {
-  return api.delete(`/employees/${employeeId}`);
-};
+// ========== Cập nhật lương và lịch sử lương ==========
+export const updateSalaryHistory = (data) => api.post('/payroll/update-salary', data);
+export const getSalaryHistory = (employeeId) => api.get(`/payroll/salary-history/${employeeId}`);
+export const calculateProrate = (data) => api.post('/payroll/calculate-prorate', data);
 
-// Department API functions
-export const getDepartments = () => {
-  return api.get('/departments/');
-};
+// ========== Dashboard APIs ==========
+export const getDashboardStats = () => api.get('/dashboard/stats');
 
-export const createDepartment = (departmentData) => {
-  return api.post('/departments/', departmentData);
-};
+// ========== Attendance APIs ==========
+export const getAttendanceDetail = (employeeId, month, year) => 
+  api.get(`/attendance/detail?employee_id=${employeeId}&month=${month}&year=${year}`);
+export const getAttendanceEmployees = () => api.get('/attendance/employees');
 
-export const updateDepartment = (departmentId, departmentData) => {
-  return api.put(`/departments/${departmentId}`, departmentData);
-};
-
-export const deleteDepartment = (departmentId) => {
-  return api.delete(`/departments/${departmentId}`);
-};
+// ========== Report APIs ==========
+export const getAttendanceReport = (month, year) => 
+  api.get(`/reports/attendance?month=${month}&year=${year}`);
+export const getPayrollMonths = () => api.get('/payroll/months');
+export const getPayrollDetails = (month, year) => 
+  api.get(`/payroll/details?month=${month}&year=${year}`);
 
 export default api;

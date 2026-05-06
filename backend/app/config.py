@@ -16,7 +16,7 @@ class Config:
     HR_DB_SERVER = os.environ.get('HR_DB_SERVER', '(localdb)\MSSQLLocalDB')
     HR_DB_NAME = os.environ.get('HR_DB_NAME', 'HUMAN_2025')
     HR_DB_USER = os.environ.get('HR_DB_USER', 'sa')
-    HR_DB_PASSWORD = os.environ.get('HR_DB_PASSWORD', '123456')
+    HR_DB_PASSWORD = os.environ.get('HR_DB_PASSWORD', '16022005')
     
     # pyodbc connection string builder
     HR_DB_CONNECTION_STRING = (
@@ -30,5 +30,5 @@ class Config:
     # 3. Payroll Database (MySQL - payroll)
     PAYROLL_DB_HOST = os.environ.get('PAYROLL_DB_HOST', 'localhost')
     PAYROLL_DB_USER = os.environ.get('PAYROLL_DB_USER', 'root')
-    PAYROLL_DB_PASSWORD = os.environ.get('PAYROLL_DB_PASSWORD', '123456')
-    PAYROLL_DB_NAME = os.environ.get('PAYROLL_DB_NAME', 'payrollnew')
+    PAYROLL_DB_PASSWORD = os.environ.get('PAYROLL_DB_PASSWORD', 'Hieu@1602')
+    PAYROLL_DB_NAME = os.environ.get('PAYROLL_DB_NAME', 'payroll_2026')

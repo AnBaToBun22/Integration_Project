@@ -67,3 +67,13 @@
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+
+/* Remove number input steppers (so users type numbers directly) */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
