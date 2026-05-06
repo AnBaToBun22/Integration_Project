@@ -29,19 +29,19 @@ def create_app(config_class=Config):
 
     # 2. Định nghĩa kết nối SQL Server (HR DB - HUMAN_2025)
     def get_hr_db():
-     try:
-        # Lấy chuỗi kết nối từ file .env
-        connstr = os.environ.get('HR_DB_CONNECTION_STRING')
-        
-        # Nếu không tìm thấy trong .env thì báo lỗi rõ ràng
-        if not connstr:
-            raise ValueError("Chưa cấu hình HR_DB_CONNECTION_STRING trong file .env!")
+        try:
+            # Lấy chuỗi kết nối từ file .env
+            connstr = os.environ.get('HR_DB_CONNECTION_STRING')
             
-        conn = pyodbc.connect(connstr)
-        return conn
-     except Exception as e:
-        print(f"[ERROR] Không thể kết nối SQL Server (HR DB): {e}")
-        raise e
+            # Nếu không tìm thấy trong .env thì báo lỗi rõ ràng
+            if not connstr:
+                raise ValueError("Chưa cấu hình HR_DB_CONNECTION_STRING trong file .env!")
+                
+            conn = pyodbc.connect(connstr)
+            return conn
+        except Exception as e:
+            print(f"[ERROR] Không thể kết nối SQL Server (HR DB): {e}")
+            raise e
 
     # 3. Định nghĩa kết nối MySQL (Payroll DB)
     def get_payroll_db_connection():
@@ -88,6 +88,10 @@ def create_app(config_class=Config):
     # Phần quản lý nhân viên hỗ trợ Vinh (UC.5, 6, 7)
     from .routes.employee_routes import employee_bp
     app.register_blueprint(employee_bp)
+
+    # Phần quản lý phòng ban
+    from .routes.department_routes import department_bp
+    app.register_blueprint(department_bp)
 
     # Phần tổng hợp dữ liệu cho Dashboard
     from .routes.dashboard_routes import dashboard_bp

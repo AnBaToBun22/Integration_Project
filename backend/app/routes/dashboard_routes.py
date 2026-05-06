@@ -20,40 +20,52 @@ def get_dashboard_stats():
     # === 1. Lấy dữ liệu từ HR (SQL Server) ===
     try:
         conn = current_app.get_hr_db()
+        stats["hr_connected"] = True
         cursor = conn.cursor()
 
-        cursor.execute("SELECT COUNT(*) FROM Employees")
-        stats["hr_total_employees"] = cursor.fetchone()[0]
+        try:
+            cursor.execute("SELECT COUNT(*) FROM Employees")
+            row = cursor.fetchone()
+            stats["hr_total_employees"] = row[0] if row else 0
 
-        cursor.execute("SELECT COUNT(*) FROM Employees WHERE Status = N'Đang làm việc' OR Status = N'Active'")
-        stats["hr_active_employees"] = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM Employees WHERE Status = N'Đang làm việc' OR Status = N'Active'")
+            row = cursor.fetchone()
+            stats["hr_active_employees"] = row[0] if row else 0
 
-        cursor.execute("SELECT COUNT(*) FROM Departments")
-        stats["hr_departments"] = cursor.fetchone()[0]
-
-        stats["hr_connected"] = True
-        conn.close()
+            cursor.execute("SELECT COUNT(*) FROM Departments")
+            row = cursor.fetchone()
+            stats["hr_departments"] = row[0] if row else 0
+        except Exception as q_e:
+            print(f"[Dashboard] HR DB Query error: {q_e}")
+        finally:
+            conn.close()
     except Exception as e:
-        print(f"[Dashboard] HR DB error: {e}")
+        print(f"[Dashboard] HR DB Connection error: {e}")
 
     # === 2. Lấy dữ liệu từ Payroll (MySQL) ===
     try:
         conn = current_app.get_payroll_db()
+        stats["payroll_connected"] = True
         cursor = conn.cursor()
 
-        cursor.execute("SELECT COUNT(*) as cnt FROM employees_payroll")
-        stats["payroll_employee_count"] = cursor.fetchone()['cnt']
+        try:
+            cursor.execute("SELECT COUNT(*) as cnt FROM employees_payroll")
+            row = cursor.fetchone()
+            stats["payroll_employee_count"] = row['cnt'] if row else 0
 
-        cursor.execute("SELECT COALESCE(SUM(NetSalary), 0) as total FROM salaries")
-        total = cursor.fetchone()['total']
-        stats["payroll_total_salary"] = float(total) if total else 0
+            cursor.execute("SELECT COALESCE(SUM(NetSalary), 0) as total FROM salaries")
+            row = cursor.fetchone()
+            total = row['total'] if row else 0
+            stats["payroll_total_salary"] = float(total) if total else 0
 
-        cursor.execute("SELECT COUNT(*) as cnt FROM salaries")
-        stats["payroll_salary_records"] = cursor.fetchone()['cnt']
-
-        stats["payroll_connected"] = True
-        conn.close()
+            cursor.execute("SELECT COUNT(*) as cnt FROM salaries")
+            row = cursor.fetchone()
+            stats["payroll_salary_records"] = row['cnt'] if row else 0
+        except Exception as q_e:
+            print(f"[Dashboard] Payroll DB Query error: {q_e}")
+        finally:
+            conn.close()
     except Exception as e:
-        print(f"[Dashboard] Payroll DB error: {e}")
+        print(f"[Dashboard] Payroll DB Connection error: {e}")
 
     return jsonify(stats), 200
